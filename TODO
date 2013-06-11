@@ -1,0 +1,1 @@
+- Allow the auditor to be somehow stopped and apply signed migrations to the audit DB

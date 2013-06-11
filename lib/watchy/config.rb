@@ -8,26 +8,25 @@ module Watchy
     def initialize
 
       @defaults = {
-        logger:   Logger.new(STDOUT),
-        loglevel: 'debug',
+        logger:     Logger.new(STDOUT),
+        loglevel:   'debug',
 
-        watched_db: {
-          schema:   'watchy',
+        adapter:    'mysql2',
+
+        watched_db: 'watchy',
+
+        db_server: {
           username: 'watchy',
           password: 'watchy',
           host:     'localhost',
           port:     3306
         },
 
-        audit_db: {
-          schema:   'audit',
-          username: 'watchy',
-          password: 'watchy',
-          host:     'localhost',
-          port:     3306
-        },
+        audit_db: 'watchy_audit',
 
         watched_tables: {
+          ledger: nil,
+          users:  nil
         },
 
         consistency_checks: [],
