@@ -5,9 +5,10 @@ Settings({
   logger:     Logger.new(STDOUT),
   loglevel:   'debug',
 
-  adapter:    'mysql2',
+  sleep_for: 5,
 
   watched_db: 'watchy',
+  audit_db: 'watchy_audit',
 
   db_server: {
     username: 'watchy',
@@ -15,8 +16,6 @@ Settings({
     host:     'localhost',
     port:     3306
   },
-
-  audit_db: 'watchy_audit',
 
   watched_tables: {
     ledger: nil,
