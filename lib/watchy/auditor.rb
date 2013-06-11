@@ -3,7 +3,7 @@ require 'mysql2'
 module Watchy
   class Auditor
 
-    SLEEP_TIME = 1.0
+    SLEEP_TIME = 5.0
 
     def initialize(config)
       @config = config
@@ -23,13 +23,21 @@ module Watchy
       trap('INT') { interrupted = true }
 
       while(!interrupted) do
-        copy_new_rows(@conn,
+        @config[:watched_tables].keys.map(&:to_s).each do |table|
+          copy_new_rows(@conn, @config[:watched_db], @config[:audit_db], table)
+        end
 
         # reporting = enforce_constraints
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
-        
-        l.debug("Sleeping for #{SLEEP_TIME}s before next run...")
+
+
+        @config[:watched_tables].keys.map(&:to_s).each do |table|
+          stamp_new_rows(@conn, @config[:watched_db], @config[:audit_db], table)
+        end
+
+        l.debug("Sleeping for #{SLEEP_TIME}s before next run ...")
+        sleep(SLEEP_TIME) unless interrupted
       end
     end
 
@@ -42,8 +50,14 @@ module Watchy
 
       # Check for audit schema
       audit_db = @config[:audit_db]
-      unless schema_exists?(@conn, audit_db)
-        create_db!(conn, audit_db)
+      if schema_exists?(@conn, audit_db)
+        if @config[:drop]
+          l.warn "Dropping already existing audit database ..."
+          @conn.query("DROP DATABASE `#{audit_db}`")
+          create_db!(@conn, audit_db)
+        end
+      else
+        create_db!(@conn, audit_db)
       end
 
       # Check for presence of audit tables and create if necessary
@@ -73,11 +87,16 @@ module Watchy
 
     def add_copied_at_field(conn, db, table)
       l.info "Adding `#{table}`.`copied_at` audit field..."
-      conn("ALTER TABLE `#{db}`.`#{table}` ADD `copied_at` TIMESTAMP NULL")
+      conn.query("ALTER TABLE `#{db}`.`#{table}` ADD `copied_at` TIMESTAMP NULL")
     end
 
+    def stamp_new_rows(conn, watched_db, audit_db, table, primary_key = :id)
+      conn.query("UPDATE `#{audit_db}`.`#{table}` SET `copied_at` = NOW() WHERE `copied_at` IS NULL")
+    end
+
+
     def copy_new_rows(conn, watched_db, audit_db, table, primary_key = :id)
-      debug "Copying new rows into #{table} ..."
+      l.debug "Copying new rows into #{table} ..."
 
       pkey_equality_condition = "(#{[primary_key].flatten.map { |k| "`#{watched_db}`.`#{table}`.`#{k}` = `#{audit_db}`.`#{table}`.`#{k}`" }.join(' AND ')})"
 
@@ -90,8 +109,9 @@ module Watchy
           )
       EOF
 
-      cnt = conn.query("SELECT COUNT(*) FROM `#{audit_db}`.`#{table}` WHERE `copied_at` IS NULL").to_a.flatten[0]
-      info "Copied #{cnt} new rows."
+      conn.query(q)
+      cnt = conn.query("SELECT COUNT(*) FROM `#{audit_db}`.`#{table}` WHERE `copied_at` IS NULL").to_a[0].flatten.to_a[1]
+      l.info "Copied #{cnt} new rows."
       cnt
     end
 

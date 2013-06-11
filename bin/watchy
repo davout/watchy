@@ -2,4 +2,7 @@
 
 require 'watchy'
 
-Watchy.boot!(Watchy::Config.new)
+Settings.use(:commandline)
+Settings.resolve!
+
+Watchy.boot!(Settings)

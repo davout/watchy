@@ -1,6 +1,6 @@
-require 'logger'
 require 'watchy/version'
-require 'watchy/config'
+require 'watchy/default_config'
+
 require 'watchy/auditor'
 
 module Watchy
