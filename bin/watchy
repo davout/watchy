@@ -5,4 +5,4 @@ require 'watchy'
 Settings.use(:commandline)
 Settings.resolve!
 
-Watchy.boot!(Settings)
+Watchy.boot!

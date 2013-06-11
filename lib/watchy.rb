@@ -6,7 +6,7 @@ require 'watchy/auditor'
 
 module Watchy
 
-  def self.boot!(config)
+  def self.boot!
     Watchy::Auditor.new.run!
   end
 
@@ -15,13 +15,17 @@ module Watchy
   end
 
   def self.connect_db(db)
-    params =  { host: db[:host], username: db[:username], password: db[:password], encoding: db[:encoding] }
     logger.info "Connecting to #{db[:username]}@#{db[:host]}:#{db[:port]}..."
-    Mysql2::Client.new(params)
+    Mysql2::Client.new(db)
   end
 
   def self.logger
-    @logger ||= Settings[:logger]
+    unless @logger
+      @logger = Settings[:logger] || Logger.new(STDOUT)
+      @logger.level = eval("Logger::Severity::#{Settings[:loglevel].upcase}")
+    end
+
+    @logger
   end
 
 end
