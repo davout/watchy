@@ -1,5 +1,7 @@
 require 'watchy/schema_helper'
 require 'watchy/tables_helper'
+require 'watchy/database_helper'
+require 'watchy/logger_helper'
 require 'watchy/table'
 
 module Watchy
@@ -7,14 +9,13 @@ module Watchy
 
     include Watchy::SchemaHelper
     include Watchy::TablesHelper
+    include Watchy::DatabaseHelper
+    include Watchy::LoggerHelper
 
-    attr_accessor :tables, :logger, :connection, :watched_db, :audit_db, :interrupted
+    attr_accessor :tables, :connection, :watched_db, :audit_db, :interrupted
 
     def initialize
-      @logger = Watchy.logger
       logger.info "Booting Watchy #{Watchy::VERSION}"
-
-      @connection ||= Watchy.connection
 
       @watched_db ||= Settings[:watched_db]
       @audit_db   ||= Settings[:audit_db]

@@ -12,11 +12,4 @@ describe Watchy do
       Watchy.boot!
     end
   end
-
-  describe '.connect_db' do
-    it 'should instantiate a database connection' do
-      Mysql2::Client.should_receive(:new).once.with({ :foo => :bar })
-      Watchy.connect_db({ :foo => :bar })
-    end
-  end
 end

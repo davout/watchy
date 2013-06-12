@@ -10,7 +10,6 @@ describe Watchy::Auditor do
   context '.new' do
     before do
       stub(Watchy).as_null_object
-      Watchy.stub(:connection).and_return(:foo)
       stub(Settings).as_null_object
     end
 
@@ -20,10 +19,6 @@ describe Watchy::Auditor do
 
     it 'should bootstrap the audit tables' do
       subject.should_receive(:bootstrap_audit_tables!).once
-    end
-
-    it 'should connect to the database' do
-      Watchy.should_receive(:connection)
     end
 
     after do

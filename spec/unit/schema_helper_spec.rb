@@ -2,14 +2,10 @@ require_relative '../spec_helper'
 
 describe Watchy::SchemaHelper do
 
-  subject do
     class Dummy; include Watchy::SchemaHelper; end
-    Dummy.new
-  end
 
-  before do
-    subject.stub(:watched_db).and_return('foo')
-  end
+  subject { Dummy.new }
+  before { subject.stub(:watched_db).and_return('foo') }
 
   describe '.bootstrap_databases!' do
     it 'should fail when the audited schema is missing' do

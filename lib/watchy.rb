@@ -4,29 +4,17 @@ require 'watchy/version'
 require 'watchy/default_config'
 require 'watchy/auditor'
 
+
+# 
+# The Watchy module implements the +boot!+ method used to spawn a new +Watchy::Auditor+ instance
+#
 module Watchy
 
+  #
+  # Creates a new +Watchy::Auditor+ instance and calls the +Watchy::Auditor#run!+ method on it
+  #
   def self.boot!
     Watchy::Auditor.new.run!
   end
-
-  def self.connection
-    @connection ||= connect_db(Settings[:db_server])
-  end
-
-  def self.connect_db(db)
-    logger.info "Connecting to #{db[:username]}@#{db[:host]}:#{db[:port]}..."
-    Mysql2::Client.new(db)
-  end
-
-  def self.logger
-    unless @logger
-      @logger = Settings[:logger] || Logger.new(STDOUT)
-      @logger.level = eval("Logger::Severity::#{Settings[:loglevel].upcase}")
-    end
-
-    @logger
-  end
-
 end
 
