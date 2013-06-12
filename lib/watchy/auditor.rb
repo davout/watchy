@@ -16,7 +16,7 @@ module Watchy
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
 
-    attr_accessor :tables, :connection, :watched_db, :audit_db, :interrupted
+    attr_accessor :tables, :watched_db, :audit_db, :interrupted
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
