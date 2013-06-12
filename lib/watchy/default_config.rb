@@ -3,7 +3,7 @@ require 'configliere'
 
 Settings({
   logger:     Logger.new(STDOUT),
-  loglevel:   'debug',
+  loglevel:   'info',
 
   sleep_for: 5,
 

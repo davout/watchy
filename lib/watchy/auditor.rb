@@ -8,21 +8,23 @@ module Watchy
     include Watchy::SchemaHelper
     include Watchy::TablesHelper
 
-    attr_accessor :tables, :logger, :connection, :watched_db, :audit_db
+    attr_accessor :tables, :logger, :connection, :watched_db, :audit_db, :interrupted
 
     def initialize
       @logger = Watchy.logger
       logger.info "Booting Watchy #{Watchy::VERSION}"
 
-      @connection = Watchy.connection
+      @connection ||= Watchy.connection
 
-      @watched_db = Settings[:watched_db]
-      @audit_db   = Settings[:audit_db]
+      @watched_db ||= Settings[:watched_db]
+      @audit_db   ||= Settings[:audit_db]
 
-      @tables = Settings[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
+      @tables ||= Settings[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
 
       bootstrap_databases!
       bootstrap_audit_tables!
+
+      trap('INT') { @interrupted = true }
     end
 
     def run!
@@ -30,21 +32,26 @@ module Watchy
 
       sleep_for = Settings[:sleep_for]
 
-      interrupted = false
-      trap('INT') { interrupted = true }
-
       while(!interrupted) do
-        tables.each { |t| t.copy_new_rows } 
+        copy_new_rows
 
         # reporting = enforce_constraints
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
 
-        tables.each { |t| t.stamp_new_rows } 
+        stamp_new_rows
 
         logger.debug("Sleeping for #{sleep_for}s before next run ...")
         sleep(sleep_for) unless interrupted
       end
+    end
+
+    def copy_new_rows
+      tables.each { |t| t.copy_new_rows } 
+    end
+
+    def stamp_new_rows
+      tables.each { |t| t.stamp_new_rows } 
     end
   end
 end

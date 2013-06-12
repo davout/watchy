@@ -12,19 +12,19 @@ module Watchy
         if Settings[:drop]
           logger.warn "Dropping already existing audit database ..."
           connection.query("DROP DATABASE `#{audit_db}`")
-          create_db!(audit_db)
+          create_schema!(audit_db)
         end
       else
-        create_db!(audit_db)
+        create_schema!(audit_db)
       end
     end
 
-    def schema_exists?(db)
-      connection.query('SHOW DATABASES').any? { |d| d['Database'] == db }
+    def schema_exists?(schema) 
+      connection.query('SHOW DATABASES').any? { |d| d['Database'] == schema }
     end
 
-    def create_db!(db)
-      connection.query("CREATE DATABASE `#{db}`")
+    def create_schema!(schema)
+      connection.query("CREATE DATABASE `#{schema}`")
     end
 
   end
