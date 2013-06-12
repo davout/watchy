@@ -9,7 +9,6 @@ describe Watchy::Auditor do
 
   context '.new' do
     before do
-      stub(Watchy).as_null_object
       stub(Settings).as_null_object
     end
 
@@ -46,4 +45,23 @@ describe Watchy::Auditor do
       subject.send(:run!)
     end
   end
+
+  describe '#copy_new_rows' do
+    before { subject.tables = [Object, Object, Object] }
+
+    it 'should call Table#copy_new_rows for each audited table' do
+      subject.tables.each { |t| t.should_receive(:copy_new_rows).once }
+      subject.copy_new_rows
+    end
+  end
+
+  describe '#stamp_new_rows' do
+    before { subject.tables = [Object, Object, Object] }
+
+    it 'should call Table#stamp_new_rows for each audited table' do
+      subject.tables.each { |t| t.should_receive(:stamp_new_rows).once }
+      subject.stamp_new_rows
+    end
+  end
+
 end

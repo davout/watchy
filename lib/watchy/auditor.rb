@@ -5,6 +5,10 @@ require 'watchy/logger_helper'
 require 'watchy/table'
 
 module Watchy
+
+  #
+  # An auditor continuously watches +watched_db+ and enforces a set of user-defined rules on its data
+  #
   class Auditor
 
     include Watchy::SchemaHelper
@@ -14,6 +18,10 @@ module Watchy
 
     attr_accessor :tables, :connection, :watched_db, :audit_db, :interrupted
 
+    #
+    # Initializes an +Auditor+ instance given the current configuration.
+    # Bootstraps the audit database if necessary.
+    #
     def initialize
       logger.info "Booting Watchy #{Watchy::VERSION}"
 
@@ -28,6 +36,9 @@ module Watchy
       trap('INT') { @interrupted = true }
     end
 
+    #
+    # Runs audit cycles until interrupted by a SIGTERM
+    #
     def run!
       logger.info "Starting audit loop, interrupt with <Ctrl>-C ..."
 
@@ -47,10 +58,16 @@ module Watchy
       end
     end
 
+    #
+    # Copies the new rows from the audited database for each audited table
+    #
     def copy_new_rows
       tables.each { |t| t.copy_new_rows } 
     end
 
+    #
+    # Timestamps the new rows in the audit database at the end of the audit cycle
+    #
     def stamp_new_rows
       tables.each { |t| t.stamp_new_rows } 
     end

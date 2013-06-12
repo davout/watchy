@@ -1,6 +1,13 @@
 module Watchy
+
+  #
+  # Implements the bootstrapping of all the audit tables
+  #
   module TablesHelper
 
+    #
+    # Bootstrap all the audited tables copies in the audit database
+    #
     def bootstrap_audit_tables!
       audit_db_tables = connection.query("SHOW TABLES FROM `#{watched_db}`").to_a.map { |i| i.to_a.flatten[1] }
 
