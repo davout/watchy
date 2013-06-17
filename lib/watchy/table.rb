@@ -1,3 +1,5 @@
+require 'watchy/field'
+
 module Watchy
 
   #
@@ -15,9 +17,9 @@ module Watchy
     #
     def initialize(auditor, name)
       @connection = auditor.connection
-      @logger = auditor.logger
-      @auditor = auditor
-      @name = name
+      @logger     = auditor.logger
+      @auditor    = auditor
+      @name       = name
     end
 
     #
@@ -74,7 +76,7 @@ module Watchy
     #  => ["id"]
     #
     def primary_key
-      ['id']
+      fields.select { |f| f.key }.map(&:name)
     end
 
     #
@@ -140,8 +142,6 @@ module Watchy
     def copy_new_rows
       logger.debug "Copying new rows into #{name} ..."
 
-      pkey_equality_condition = "(#{[primary_key].flatten.map { |k| "#{watched}.`#{k}` = #{audit}.`#{k}`" }.join(' AND ')})"
-
       q = <<-EOF
         INSERT INTO #{audit}
           SELECT *, NULL 
@@ -155,6 +155,44 @@ module Watchy
           cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `copied_at` IS NULL").to_a[0].flatten.to_a[1]
           logger.info "Copied #{cnt} new rows."
           cnt
+    end
+
+    #
+    # Return the table's fields
+    #
+    # @return [Array] An array of the table's fields
+    #
+    def fields(db = :watched)
+      @fields ||= connection.query("DESC #{send(db)}").map do |f|
+        Watchy::Field.new(
+          self,
+          f['Field'],
+          f['Type'],
+          f['Key'],
+          f['Default'],
+          f['Extra']
+        )
+      end
+    end
+
+    #
+    # Returns the filter used to check for differences among previously copied rows
+    #
+    # @return [String] A +WHERE+ clause fragment matching when rows have differences
+    #
+    def differences_filter
+      f = fields.map do |field|
+        "(#{field.difference_filter})"
+      end.join(' OR ')
+    end
+
+    #
+    # Returns the primary key equality condition
+    #
+    # @return [String] A SQL fragment used as +INNER JOIN+ condition to join the watched and audited tables
+    #
+    def pkey_equality_condition
+      "(#{[primary_key].flatten.map { |k| "#{watched}.`#{k}` = #{audit}.`#{k}`" }.join(' AND ')})"
     end
   end
 end

@@ -21,8 +21,13 @@ describe 'Watchy::Table' do
   end
 
   describe '#primary_key' do
-    it 'should return the primary key fields as an array' do
-      subject.primary_key.should be_an_instance_of(Array)
+    before do
+      f = [ Watchy::Field.new(subject, 'foo', 'INT', false, true), Watchy::Field.new(subject, 'bar', 'INT') ]
+      subject.stub(:fields).and_return(f)
+    end
+
+    it 'should return the primary key fields as an array of field names' do
+      subject.primary_key.should eql(%w{ foo })
     end
   end
 
@@ -82,9 +87,19 @@ describe 'Watchy::Table' do
   end
 
   describe '#copy_new_rows' do
+    before { subject.stub(:pkey_equality_condition) }
+
     it 'should return the number of inserted rows' do
       subject.connection.should_receive(:query).twice.and_return(nil, [{ 'COUNT(*)' => 10 }])
       subject.copy_new_rows.should eql(10)
+    end
+  end
+
+  describe '#differences_filter' do
+    it 'should return a SQL fragment' do
+      subject.columns = %w{ id field other_field }
+      expected_filter = "(((`audit`.`baz`.`field` IS NULL AND `watched`.`baz`.`field` IS NOT NULL) OR (`audit`.`baz`.`field` IS NULL AND `watched`.`baz`.`field` IS NOT NULL)) OR (`audit`.`baz`.`field` <> `watched`.`baz`.`field`))"
+      subject.differences_filter.should_be eql(expected_filter)
     end
   end
 end
