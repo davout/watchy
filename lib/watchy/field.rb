@@ -54,12 +54,17 @@ module Watchy
       @extra    = extra
     end
 
+    #
+    # The difference filter for this field
+    #
+    # @return [String] A +WHERE+ fragment matching when the field has a different value in the
+    #   audit and watched databases
+    #
     def difference_filter
       "((#{watched} IS NULL AND #{audit} IS NOT NULL) OR (#{watched} IS NOT NULL AND #{audit} IS NULL) OR (#{watched} <> #{audit}))"
     end
 
 
-    protected
 
     def watched
       "`#{table.watched}`.`#{name}`"
