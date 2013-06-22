@@ -65,11 +65,20 @@ module Watchy
     end
 
 
-
+    #
+    # Returns the fully qualified field name in the watched table
+    #
+    # @return [String] The fully qualified name of the field in the watched table
+    #
     def watched
       "`#{table.watched}`.`#{name}`"
     end
 
+    #
+    # Returns the fully qualified field name in the audit table
+    #
+    # @return [String] The fully qualified name of the field in the audit table
+    #
     def audit
       "`#{table.audit}`.`#{name}`"
     end
