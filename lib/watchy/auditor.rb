@@ -3,6 +3,8 @@ require 'watchy/tables_helper'
 require 'watchy/database_helper'
 require 'watchy/logger_helper'
 require 'watchy/table'
+require 'watchy/report'
+require 'watchy/gpg_key'
 
 module Watchy
 
@@ -16,7 +18,7 @@ module Watchy
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
 
-    attr_accessor :tables, :watched_db, :audit_db, :interrupted
+    attr_accessor :tables, :watched_db, :audit_db, :interrupted, :reports
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
@@ -29,6 +31,7 @@ module Watchy
       @audit_db   ||= Settings[:audit_db]
 
       @tables ||= Settings[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
+      @reports ||= [Settings[:reports]].flatten 
 
       bootstrap_databases!
       bootstrap_audit_tables!
@@ -51,6 +54,8 @@ module Watchy
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
 
+        run_reports!
+
         stamp_new_rows
 
         logger.debug("Sleeping for #{sleep_for}s before next run ...")
@@ -70,6 +75,13 @@ module Watchy
     #
     def stamp_new_rows
       tables.each { |t| t.stamp_new_rows } 
+    end
+
+    #
+    # Runs the configured reports if necessary
+    #
+    def run_reports!
+      reports.map(&:run).compact
     end
   end
 end

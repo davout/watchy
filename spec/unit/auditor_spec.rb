@@ -7,7 +7,7 @@ describe Watchy::Auditor do
     Watchy::Auditor.any_instance.stub(:bootstrap_audit_tables!)
   end
 
-  context '.new' do
+  describe '.new' do
     before do
       stub(Settings).as_null_object
     end
@@ -31,6 +31,7 @@ describe Watchy::Auditor do
       subject.stub(:sleep_for)
       subject.stub(:stamp_new_rows)
       subject.stub(:copy_new_rows)
+      subject.stub(:run_reports!)
     end
 
     it 'should copy new rows to the audit database' do
@@ -40,6 +41,10 @@ describe Watchy::Auditor do
     it 'should timestamp new rows with the current time' do
       subject.should_receive :stamp_new_rows
     end
+
+it 'should run the reports' do
+  subject.should_receive :run_reports!
+  end
 
     after do
       subject.send(:run!)
@@ -64,4 +69,12 @@ describe Watchy::Auditor do
     end
   end
 
+  describe '#run_reports!' do
+    before { subject.reports = [Object, Object, Object] }
+
+    it 'should call Report#run for each configured report' do
+      subject.reports.each { |t| t.should_receive(:run).once }
+      subject.run_reports!
+    end
+  end
 end
