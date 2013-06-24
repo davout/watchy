@@ -36,7 +36,12 @@ module Watchy
       bootstrap_databases!
       bootstrap_audit_tables!
 
-      trap('INT') { @interrupted = true }
+      logger.info "Watching '#{watched_db}', using '#{audit_db}' as audit database"
+
+      trap('INT') do 
+        @interrupted = true
+        logger.info "Interrupted, terminating..."
+      end
     end
 
     #
@@ -67,14 +72,14 @@ module Watchy
     # Copies the new rows from the audited database for each audited table
     #
     def copy_new_rows
-      tables.each { |t| t.copy_new_rows } 
+      tables.each(&:copy_new_rows)
     end
 
     #
     # Timestamps the new rows in the audit database at the end of the audit cycle
     #
     def stamp_new_rows
-      tables.each { |t| t.stamp_new_rows } 
+      tables.each(&:stamp_new_rows)
     end
 
     #
@@ -82,6 +87,13 @@ module Watchy
     #
     def run_reports!
       reports.map(&:run).compact
+    end
+
+    #
+    # Enforces the constraints defined on the watched tables
+    #
+    def enforce_constraints
+      tables.each(&:enforce_constraints)
     end
   end
 end
