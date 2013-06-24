@@ -3,7 +3,6 @@ PATH
   specs:
     watchy (0.0.1pre)
       configliere
-      gpgme
       mustache
       mysql2
 
@@ -14,7 +13,6 @@ GEM
       highline (>= 1.5.2)
       multi_json (>= 1.1)
     diff-lcs (1.2.4)
-    gpgme (2.0.2)
     highline (1.6.19)
     multi_json (1.7.6)
     mustache (0.99.4)

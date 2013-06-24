@@ -1,27 +1,38 @@
 require_relative '../spec_helper'
 
-describe Watchy::GpgKey do
+describe Watchy::GPGKey do
 
-  describe '.gpg_available?' do
 
-    subject { Watchy::GpgKey }
+  context 'class mathods' do
 
-    it 'should report the GPG binary presence on the path' do
-      subject.should_receive(:'`').
-        with('gpg --version 2>&1').
-        and_return("gpg (GnuPG) 1.4.12\nCopyright (C) 2012 Free Software Foundation, Inc.")
+    subject { Watchy::GPGKey }
 
-      subject.gpg_available?.should be_true
+    describe '.gpg_available?' do
+      it 'should report the GPG binary presence on the path' do
+        subject.should_receive(:system).and_return(true)
+        subject.gpg_available?.should be_true
+      end
+
+      it 'should report the GPG binary absence when command is not found' do
+        subject.should_receive(:system).and_return(false)
+        subject.gpg_available?.should be_false
+      end
     end
+  end
 
-    it 'should report the GPG binary absence when command is not found' do
-      subject.should_receive(:'`') { `some-non-existing-command 2>&1` }
-      subject.gpg_available?.should be_false
-    end
+  context 'instance methods' do
 
-    it 'should report GPG absence when the returned version string is not recognized' do
-      subject.should_receive(:'`') { `whoami` }
-      subject.gpg_available?.should be_false
+    describe '#fingerprint=' do
+      before { @fingerprint = 'EF5AD3005FA03C7898F2A98BBECB4E52A92D98D0' }
+      subject { Watchy::GPGKey.new(@fingerprint) }
+
+      it 'should set the fingerprint if it is correctly formatted' do
+        subject.fingerprint.should eql(@fingerprint)
+      end
+
+      it 'should raise an error if the fingerprint is changed' do
+        expect { subject.fingerprint = 'EF5AD3005FA03C7898F2A98BBE00000000000000' }.to raise_error
+      end
     end
   end
 end

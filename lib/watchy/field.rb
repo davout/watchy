@@ -71,7 +71,7 @@ module Watchy
     # @return [String] The fully qualified name of the field in the watched table
     #
     def watched
-      "`#{table.watched}`.`#{name}`"
+      "#{table.watched}.`#{name}`"
     end
 
     #
@@ -80,7 +80,7 @@ module Watchy
     # @return [String] The fully qualified name of the field in the audit table
     #
     def audit
-      "`#{table.audit}`.`#{name}`"
+      "#{table.audit}.`#{name}`"
     end
   end
 end
