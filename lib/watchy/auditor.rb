@@ -4,7 +4,6 @@ require 'watchy/database_helper'
 require 'watchy/logger_helper'
 require 'watchy/table'
 require 'watchy/report'
-require 'watchy/gpg_key'
 
 module Watchy
 
