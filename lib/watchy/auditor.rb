@@ -37,10 +37,7 @@ module Watchy
 
       logger.info "Watching '#{watched_db}', using '#{audit_db}' as audit database"
 
-      trap('INT') do 
-        @interrupted = true
-        logger.info "Interrupted, terminating..."
-      end
+      trap('INT') { interrupt! }
     end
 
     #
@@ -93,6 +90,14 @@ module Watchy
     #
     def enforce_constraints
       tables.each(&:enforce_constraints)
+    end
+
+    #
+    # Interrupts the auditing loop
+    #
+    def interrupt!
+      @interrupted = true
+      logger.info "Interrupted, terminating..."
     end
   end
 end

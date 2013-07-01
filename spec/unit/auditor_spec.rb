@@ -7,10 +7,19 @@ describe Watchy::Auditor do
     Watchy::Auditor.any_instance.stub(:bootstrap_audit_tables!)
   end
 
-  describe '.new' do
-    before do
-      stub(Settings).as_null_object
+  describe '#interrupt!' do
+    before { subject.stub(:logger).as_null_object }
+
+    it 'should set the interrupted instance variable' do
+      subject.interrupted.should be_false
+      subject.logger.should_receive(:info)
+      subject.interrupt!
+      subject.interrupted.should be_true
     end
+  end
+
+  describe '.new' do
+    before { stub(Settings).as_null_object }
 
     it 'should bootstrap the databases' do
       subject.should_receive(:bootstrap_databases!)
@@ -42,39 +51,44 @@ describe Watchy::Auditor do
       subject.should_receive :stamp_new_rows
     end
 
-it 'should run the reports' do
-  subject.should_receive :run_reports!
-  end
+    it 'should run the reports' do
+      subject.should_receive :run_reports!
+    end
 
     after do
       subject.send(:run!)
     end
   end
 
-  describe '#copy_new_rows' do
+  describe 'when working with tables' do
     before { subject.tables = [Object, Object, Object] }
 
-    it 'should call Table#copy_new_rows for each audited table' do
-      subject.tables.each { |t| t.should_receive(:copy_new_rows).once }
-      subject.copy_new_rows
+    describe '#copy_new_rows' do
+      it 'should call Table#copy_new_rows for each audited table' do
+        subject.tables.each { |t| t.should_receive(:copy_new_rows).once }
+        subject.copy_new_rows
+      end
     end
-  end
 
-  describe '#stamp_new_rows' do
-    before { subject.tables = [Object, Object, Object] }
-
-    it 'should call Table#stamp_new_rows for each audited table' do
-      subject.tables.each { |t| t.should_receive(:stamp_new_rows).once }
-      subject.stamp_new_rows
+    describe '#stamp_new_rows' do
+      it 'should call Table#stamp_new_rows for each audited table' do
+        subject.tables.each { |t| t.should_receive(:stamp_new_rows).once }
+        subject.stamp_new_rows
+      end
     end
-  end
 
-  describe '#run_reports!' do
-    before { subject.reports = [Object, Object, Object] }
+    describe '#enforce_constraints' do
+      it 'should call Table#enforce_constraints for each audited table' do
+        subject.tables.each { |t| t.should_receive(:enforce_constraints).once }
+        subject.enforce_constraints
+      end
+    end
 
-    it 'should call Report#run for each configured report' do
-      subject.reports.each { |t| t.should_receive(:run).once }
-      subject.run_reports!
+    describe '#run_reports!' do
+      it 'should call Report#run for each configured report' do
+        subject.reports.each { |t| t.should_receive(:run).once }
+        subject.run_reports!
+      end
     end
   end
 end
