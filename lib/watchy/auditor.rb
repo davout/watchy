@@ -4,6 +4,7 @@ require 'watchy/database_helper'
 require 'watchy/logger_helper'
 require 'watchy/table'
 require 'watchy/report'
+require 'watchy/gpg'
 
 module Watchy
 
@@ -16,6 +17,7 @@ module Watchy
     include Watchy::TablesHelper
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
+    include Watchy::GPG
 
     attr_accessor :tables, :watched_db, :audit_db, :interrupted, :reports
 
