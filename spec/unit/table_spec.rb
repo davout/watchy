@@ -31,6 +31,19 @@ describe 'Watchy::Table' do
     end
   end
 
+  describe '#fields' do
+    before do
+      @connection = mock(Object).as_null_object
+      subject.stub(:connection).and_return(@connection)
+    end
+
+    it 'should instantiate an array of fields' do
+      @connection.should_receive(:query).and_return([{}, {}])
+      Watchy::Field.should_receive(:new).twice.and_return(:foo, :bar)
+      subject.fields.should eql([:foo, :bar])
+    end
+  end
+
   describe '#exists?' do
     it 'should correctly test for the existence of the audit table' do
       subject.auditor.should_receive(:audit_db).once.and_return('baz')
@@ -96,10 +109,30 @@ describe 'Watchy::Table' do
   end
 
   describe '#differences_filter' do
+    before do
+      field1 = mock(Object).as_null_object
+      field2 = mock(Object).as_null_object
+      field1.stub(:difference_filter).and_return('zibidee')
+      field2.stub(:difference_filter).and_return('doo')
+      subject.stub(:fields).and_return([field1, field2])
+    end
+
     it 'should return a SQL fragment' do
-      subject.columns = %w{ id field other_field }
-      expected_filter = "(((`audit`.`baz`.`field` IS NULL AND `watched`.`baz`.`field` IS NOT NULL) OR (`audit`.`baz`.`field` IS NULL AND `watched`.`baz`.`field` IS NOT NULL)) OR (`audit`.`baz`.`field` <> `watched`.`baz`.`field`))"
-      subject.differences_filter.should_be eql(expected_filter)
+      expected_filter = "((zibidee) OR (doo))"
+      subject.differences_filter.should eql(expected_filter)
+    end
+  end
+
+  describe '#pkey_equality_condition' do
+    before do
+      subject.stub(:primary_key).and_return(['a', 'b'])
+      subject.stub(:watched).and_return('`foo`')
+      subject.stub(:audit).and_return('`bar`')
+    end
+
+    it 'should return the correct condition given a primary key' do
+      expected = "(`foo`.`a` = `bar`.`a` AND `foo`.`b` = `bar`.`b`)"
+      subject.pkey_equality_condition.should eql(expected)
     end
   end
 end

@@ -181,9 +181,11 @@ module Watchy
     # @return [String] A +WHERE+ clause fragment matching when rows have differences
     #
     def differences_filter
-      f = fields.map do |field|
+      conditions = fields.map do |field|
         "(#{field.difference_filter})"
-      end.join(' OR ')
+      end
+
+      "(#{conditions.join(' OR ')})"
     end
 
     #

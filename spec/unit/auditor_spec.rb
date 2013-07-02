@@ -8,7 +8,9 @@ describe Watchy::Auditor do
   end
 
   describe '#interrupt!' do
-    before { subject.stub(:logger).as_null_object }
+    before do
+      subject.stub(:logger).and_return(mock(Object).as_null_object)
+    end
 
     it 'should set the interrupted instance variable' do
       subject.interrupted.should be_false
