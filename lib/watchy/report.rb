@@ -7,19 +7,36 @@ module Watchy
   #
   class Report < Mustache
 
+    # 
+    # The GPG encryptor used to sign and encrypt the generated report
     #
-    # Initializes a report given a template
+    attr_accessor :gpg
+
     #
-    def initialize(auditor, template = nil)
-      self.template_file = template
-      self.auditor = auditor
+    # The database connection against which the report should run
+    #
+    attr_accessor :db
+
+    #
+    # Initializes a report
+    #
+    # @param [Mysql2::Client] The connection to issue queries against
+    # @param [Watchy::GPG] The GPG wrapper in charge of report signature and encryption
+    # @param [String] The path to the template file
+    #
+    def initialize(db, gpg, template_file = nil)
+      @template_file  = template_file
+      @db             = db
+      @gpg            = gpg
     end
 
     #
     # Generates the report
     # 
+    # @return [String] The generated report, signed and ecnrypted
+    #
     def generate
-      auditor.gpg.wrap(render)
+      gpg.wrap(render)
     end
 
   end

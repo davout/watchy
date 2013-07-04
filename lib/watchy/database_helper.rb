@@ -6,12 +6,12 @@ module Watchy
   module DatabaseHelper
 
     # 
-    # Instantiates a connection according to the +Settings+ and memoizes it.
+    # Instantiates a connection according to the configuration and memoizes it.
     #
     # @return [Mysql2::Client] A database connection
     #
     def connection
-      @connection ||= connect_db(Settings[:db_server])
+      @connection ||= connect_db(config[:db_server])
     end
 
     #

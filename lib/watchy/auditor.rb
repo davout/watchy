@@ -17,22 +17,22 @@ module Watchy
     include Watchy::TablesHelper
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
-    include Watchy::GPG
 
-    attr_accessor :tables, :watched_db, :audit_db, :interrupted, :reports
+    attr_accessor :config, :tables, :watched_db, :audit_db, :interrupted, :reports
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
     # Bootstraps the audit database if necessary.
     #
-    def initialize
+    def initializei(configuration)
       logger.info "Booting Watchy #{Watchy::VERSION}"
 
-      @watched_db ||= Settings[:watched_db]
-      @audit_db   ||= Settings[:audit_db]
+      self.config = configuration
 
-      @tables ||= Settings[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
-      @reports ||= [Settings[:reports]].flatten 
+      @watched_db ||= config[:watched_db]
+      @audit_db   ||= config[:audit_db]
+      @tables     ||= config[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
+      @reports    ||= [config[:reports]].flatten 
 
       bootstrap_databases!
       bootstrap_audit_tables!
@@ -48,8 +48,6 @@ module Watchy
     def run!
       logger.info "Starting audit loop, interrupt with <Ctrl>-C ..."
 
-      sleep_for = Settings[:sleep_for]
-
       while(!interrupted) do
         copy_new_rows
 
@@ -62,7 +60,7 @@ module Watchy
         stamp_new_rows
 
         logger.debug("Sleeping for #{sleep_for}s before next run ...")
-        sleep(sleep_for) unless interrupted
+        sleep(config[:sleep_for]) unless interrupted
       end
     end
 
