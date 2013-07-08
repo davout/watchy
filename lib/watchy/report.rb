@@ -25,7 +25,7 @@ module Watchy
     # @param [String] The path to the template file
     #
     def initialize(db, gpg, template_file = nil)
-      @template_file  = template_file
+      @template_file  = template_file && File.expand_path(template_file)
       @db             = db
       @gpg            = gpg
     end

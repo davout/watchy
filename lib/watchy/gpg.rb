@@ -8,8 +8,12 @@ module Watchy
   #
   class GPG
 
-# TODO : Encrypt to self ?
-
+    #
+    # The default options
+    #
+    DEFAULT_OPTIONS = {
+      clearsign: false
+    }
 
     #
     # The key used to sign
@@ -31,9 +35,10 @@ module Watchy
     # @params [String] The GPG key ID with which data should be signed
     # @param [Array<String>] The GPG keys IDs to which data should be encrypted
     #
-    def initialize(sign_with, encrypt_to = [])
-      @sign_with  = sign_with
-      @encrypt_to = [encrypt_to].flatten
+    def initialize(sign_with_p, encrypt_to = [], options = {})
+      @options = DEFAULT_OPTIONS.merge(options) 
+      @sign_with  = GPGME::Key.find(:secret, sign_with_p)
+      @encrypt_to = [encrypt_to].map { |k| GPGME::Key.find(:public, k) }.flatten
     end
 
     #
@@ -42,7 +47,7 @@ module Watchy
     # @return [GPGME::Crypto] A GPG encryptor
     #
     def encryptor
-      @encryptor ||= GPGME::Crypto.new
+      @encryptor ||= GPGME::Crypto.new(armor: true)
     end
 
     #
@@ -54,7 +59,11 @@ module Watchy
     #   an ASCII-armored string
     # 
     def wrap(text)
-      encrypt(clearsign(text))
+      if @options[:clearsign]
+        encrypt(clearsign(text))
+      else
+        encrypt(text, sign: true)
+      end
     end
 
     #
@@ -64,7 +73,7 @@ module Watchy
     # @return [String] The clearsigned text
     #
     def clearsign(text)
-      encryptor.clearsign(text, key: sign_with)
+      encryptor.clearsign(text, signer: sign_with)
     end
 
     #
@@ -73,8 +82,18 @@ module Watchy
     # @param [String] The text to encrypt
     # @return [String] The encrypted text
     #
-    def encrypt(text)
-      text
+    def encrypt(text, opts = {})
+      if opts[:sign]
+        sign = true
+        signers = [sign_with]
+      end 
+
+      if encrypt_to.empty?
+        puts 'Not encrypting'
+        text
+      else
+        encryptor.encrypt(text, recipients: encrypt_to, always_trust: true, sign: sign, signers: signers || [])
+      end
     end
 
   end
