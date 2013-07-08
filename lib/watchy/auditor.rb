@@ -24,14 +24,14 @@ module Watchy
     # Initializes an +Auditor+ instance given the current configuration.
     # Bootstraps the audit database if necessary.
     #
-    def initializei(configuration)
+    def initialize(configuration)
       logger.info "Booting Watchy #{Watchy::VERSION}"
 
       self.config = configuration
 
       @watched_db ||= config[:watched_db]
       @audit_db   ||= config[:audit_db]
-      @tables     ||= config[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
+      @tables     ||= config[:watched_tables] && config[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
       @reports    ||= [config[:reports]].flatten 
 
       bootstrap_databases!

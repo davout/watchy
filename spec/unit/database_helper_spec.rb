@@ -16,6 +16,8 @@ describe Watchy::DatabaseHelper do
   end
 
   describe '#connection' do
+    before { subject.stub(:config).and_return({}) }
+
     it 'should memoize the value returned by #connect_db' do
       subject.should_receive(:connect_db).once.and_return('foo')
       2.times { subject.connection }

@@ -5,6 +5,9 @@ describe Watchy::Report do
   describe '#run' do
     before do
       class TestReport < Watchy::Report
+        def initialize
+        end
+
         def name
           "world"
         end

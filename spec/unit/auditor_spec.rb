@@ -5,11 +5,14 @@ describe Watchy::Auditor do
   before do
     Watchy::Auditor.any_instance.stub(:bootstrap_databases!)
     Watchy::Auditor.any_instance.stub(:bootstrap_audit_tables!)
+    Watchy::Auditor.any_instance.stub(:config).and_return({})
+    Watchy::Auditor.any_instance.stub(:logger).and_return(mock(Object).as_null_object)
   end
+
+  subject { Watchy::Auditor.new(nil) }
 
   describe '#interrupt!' do
     before do
-      subject.stub(:logger).and_return(mock(Object).as_null_object)
     end
 
     it 'should set the interrupted instance variable' do
@@ -23,17 +26,15 @@ describe Watchy::Auditor do
   describe '.new' do
     before { stub(Settings).as_null_object }
 
-    it 'should bootstrap the databases' do
+    it 'should bootstrap the databases' do 
       subject.should_receive(:bootstrap_databases!)
     end
 
-    it 'should bootstrap the audit tables' do
+    it 'should bootstrap the audit tables' do 
       subject.should_receive(:bootstrap_audit_tables!).once
     end
 
-    after do
-      subject.send(:initialize)
-    end
+    after { subject.send(:initialize, 'tets') }
   end
 
   describe '#run' do
@@ -85,6 +86,10 @@ describe Watchy::Auditor do
         subject.enforce_constraints
       end
     end
+  end
+
+  describe 'when working with reports' do
+    before { subject.reports = [Object] }
 
     describe '#run_reports!' do
       it 'should call Report#run for each configured report' do

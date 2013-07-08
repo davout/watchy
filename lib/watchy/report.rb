@@ -33,12 +33,20 @@ module Watchy
     #
     # Generates the report
     # 
-    # @return [String] The generated report, signed and ecnrypted
+    # @return [String] The generated report, signed and encrypted
     #
     def generate
-      gpg.wrap(render)
+      gpg.wrap(do_render)
     end
 
+    # 
+    # Renders the template using the +template+ instance method od
+    #   the +@template_file+ file in this order.
+    #
+    # @return [String] The generated report
+    #
+    def do_render
+      respond_to?(:template) ? render(template) : render
+    end
   end
 end
-
