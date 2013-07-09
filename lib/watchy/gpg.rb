@@ -59,11 +59,7 @@ module Watchy
     #   an ASCII-armored string
     # 
     def wrap(text)
-      if @options[:clearsign]
-        encrypt(clearsign(text))
-      else
-        encrypt(text, sign: true)
-      end
+      @options[:clearsign] ? encrypt(clearsign(text)) : encrypt(text)
     end
 
     #
@@ -82,18 +78,8 @@ module Watchy
     # @param [String] The text to encrypt
     # @return [String] The encrypted text
     #
-    def encrypt(text, opts = {})
-      if opts[:sign]
-        sign = true
-        signers = [sign_with]
-      end 
-
-      if encrypt_to.empty?
-        puts 'Not encrypting'
-        text
-      else
-        encryptor.encrypt(text, recipients: encrypt_to, always_trust: true, sign: sign, signers: signers || [])
-      end
+    def encrypt(text)
+      encryptor.encrypt(text, recipients: encrypt_to, always_trust: true, sign: true, signers: sign_with)
     end
 
   end
