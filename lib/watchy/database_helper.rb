@@ -1,3 +1,5 @@
+require 'mysql2'
+
 module Watchy
 
   #
@@ -11,7 +13,7 @@ module Watchy
     # @return [Mysql2::Client] A database connection
     #
     def connection
-      @connection ||= connect_db(config[:db_server])
+      @connection ||= connect_db(config[:database])
     end
 
     #
@@ -20,7 +22,7 @@ module Watchy
     # @param db [Hash] The parameters passed to the +Mysql2::Client.new+ call
     #
     def connect_db(db)
-      logger.info "Connecting to #{db[:username]}@#{db[:host]}:#{db[:port]}..."
+      logger.info "Connecting to #{db[:username]}@#{db[:hostname]}:#{db[:port]}..."
       Mysql2::Client.new(db)
     end
 

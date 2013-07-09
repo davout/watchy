@@ -18,21 +18,20 @@ module Watchy
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
 
-    attr_accessor :config, :tables, :watched_db, :audit_db, :interrupted, :reports
+    attr_accessor :config, :watched_db, :audit_db, :interrupted, :reports
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
     # Bootstraps the audit database if necessary.
     #
     def initialize(configuration)
-      logger.info "Booting Watchy #{Watchy::VERSION}"
-
       self.config = configuration
 
-      @watched_db ||= config[:watched_db]
-      @audit_db   ||= config[:audit_db]
-      @tables     ||= config[:watched_tables] && config[:watched_tables].keys.map { |k| Table.new(self, k.to_s) }
-      @reports    ||= [config[:reports]].flatten 
+      logger.info "Booting Watchy #{Watchy::VERSION}"
+
+      @watched_db ||= config[:database][:schema]
+      @audit_db   ||= config[:database][:audit_schema]
+      @reports    ||= [config[:reports]].flatten.compact
 
       bootstrap_databases!
       bootstrap_audit_tables!
@@ -59,7 +58,7 @@ module Watchy
 
         stamp_new_rows
 
-        logger.debug("Sleeping for #{sleep_for}s before next run ...")
+        logger.debug("Sleeping for #{config[:sleep_for]}s before next run ...")
         sleep(config[:sleep_for]) unless interrupted
       end
     end

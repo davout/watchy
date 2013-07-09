@@ -12,8 +12,10 @@ module Watchy
     #
     def logger
       unless @logger
-        @logger = configuration[:logger] || Logger.new(STDOUT)
-        @logger.level = eval("Logger::Severity::#{configuration[:loglevel].upcase}")
+        c = config[:logging]
+
+        @logger = c[:logger]
+        @logger.level = eval("Logger::Severity::#{c[:level].upcase}")
       end
 
       @logger

@@ -196,5 +196,6 @@ module Watchy
     def pkey_equality_condition
       "(#{[primary_key].flatten.map { |k| "#{watched}.`#{k}` = #{audit}.`#{k}`" }.join(' AND ')})"
     end
+
   end
 end

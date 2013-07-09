@@ -1,7 +1,6 @@
-require 'mysql2'
-
 require 'watchy/version'
-require 'watchy/default_config'
+require 'watchy/config/defaults'
+require 'watchy/config/dsl'
 require 'watchy/auditor'
 
 # 
@@ -13,7 +12,17 @@ module Watchy
   # Creates a new +Watchy::Auditor+ instance and calls the +Watchy::Auditor#run!+ method on it
   #
   def self.boot!
-    Watchy::Auditor.new.run!
+    @@config ||= {}
+    Settings(@@config)
+    Watchy::Auditor.new(Settings).run!
   end
+
+  #
+  # Sets the configuration of the instance using a cute little DSL
+  #
+  def self.configure(&block)
+    @@config = Watchy::Config::DSL.get_from(&block)
+  end
+
 end
 

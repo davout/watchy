@@ -1,0 +1,58 @@
+require 'docile'
+
+require 'watchy/config/db_config_builder'
+require 'watchy/config/gpg_config_builder'
+require 'watchy/config/audit_config_builder'
+
+module Watchy
+  module Config
+    class Builder
+
+      #
+      # Initializes the configuration builder with an empty config array
+      # 
+      def initialize
+        @config = []
+      end
+
+      #
+      # Sets the configuration for the audited database connection
+      #
+      def database(&block)
+        @config << Docile.dsl_eval(DbConfigBuilder.new, &block).build
+      end
+
+      #
+      # Sets the logger
+      #
+      def logging(&block)
+        @config << Docile.dsl_eval(LoggerConfigBuilder.new, &block).build
+      end
+
+      #
+      # Sets the GPG related configuration
+      #
+      def gpg(&block)
+        @config << Docile.dsl_eval(GPGConfigBuilder.new, &block).build
+      end
+
+      #
+      # Defines the exact auditing to be performed
+      #
+      def audit(&block)
+        @config << Docile.dsl_eval(AuditConfigBuilder.new, &block).build
+      end
+
+      #
+      # Returns the full configuration hash
+      #
+      # @return [Hash] The configuration hash
+      #
+      def resolve
+        @config.inject({}) { |memo, h| memo.merge(h) }
+      end
+
+    end
+  end
+end
+

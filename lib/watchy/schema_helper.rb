@@ -16,7 +16,7 @@ module Watchy
 
       # Check for audit schema
       if schema_exists?(audit_db)
-        if Settings[:drop]
+        if config[:database][:drop_audit_schema]
           logger.warn "Dropping already existing audit database ..."
           connection.query("DROP DATABASE `#{audit_db}`")
           create_schema!(audit_db)

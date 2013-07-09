@@ -25,6 +25,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'mysql2'
   s.add_dependency 'mustache'
   s.add_dependency 'gpgme'
+  s.add_dependency 'docile'
 
   s.files        = Dir.glob('{bin,lib}/**/*') + %w(LICENSE README.md)
   s.executables  = ['watchy']
