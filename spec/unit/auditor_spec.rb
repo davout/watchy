@@ -5,11 +5,17 @@ describe Watchy::Auditor do
   before do
     Watchy::Auditor.any_instance.stub(:bootstrap_databases!)
     Watchy::Auditor.any_instance.stub(:bootstrap_audit_tables!)
-    Watchy::Auditor.any_instance.stub(:config).and_return({})
     Watchy::Auditor.any_instance.stub(:logger).and_return(mock(Object).as_null_object)
   end
 
-  subject { Watchy::Auditor.new(nil) }
+  subject do
+    Watchy::Auditor.new({
+      database: {
+        schema: 'foo',
+        audit_schema: 'bar'
+      }
+    })
+  end
 
   describe '#interrupt!' do
     before do
@@ -44,6 +50,8 @@ describe Watchy::Auditor do
       subject.stub(:stamp_new_rows)
       subject.stub(:copy_new_rows)
       subject.stub(:run_reports!)
+      subject.stub(:flag_row_deltas)
+      subject.stub(:unflag_row_deltas)
     end
 
     it 'should copy new rows to the audit database' do
@@ -64,7 +72,7 @@ describe Watchy::Auditor do
   end
 
   describe 'when working with tables' do
-    before { subject.tables = [Object, Object, Object] }
+    before { subject.stub(:tables).and_return([Object, Object, Object]) }
 
     describe '#copy_new_rows' do
       it 'should call Table#copy_new_rows for each audited table' do
@@ -80,10 +88,10 @@ describe Watchy::Auditor do
       end
     end
 
-    describe '#enforce_constraints' do
+    describe '#enforce_audit_rules' do
       it 'should call Table#enforce_constraints for each audited table' do
-        subject.tables.each { |t| t.should_receive(:enforce_constraints).once }
-        subject.enforce_constraints
+        subject.tables.each { |t| t.should_receive(:enforce_audit_rules).once }
+        subject.enforce_audit_rules
       end
     end
   end

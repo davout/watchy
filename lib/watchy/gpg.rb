@@ -32,12 +32,12 @@ module Watchy
     #
     #   The passphrase will be handled securely by a gpg-agent instance.
     #
-    # @params [String] The GPG key ID with which data should be signed
-    # @param [Array<String>] The GPG keys IDs to which data should be encrypted
+    # @param sign_with [String] The GPG key ID with which data should be signed
+    # @param encrypt_to [Array<String>] The GPG keys IDs to which data should be encrypted
     #
-    def initialize(sign_with_p, encrypt_to = [], options = {})
+    def initialize(sign_with, encrypt_to = [], options = {})
       @options = DEFAULT_OPTIONS.merge(options) 
-      @sign_with  = GPGME::Key.find(:secret, sign_with_p)
+      @sign_with  = GPGME::Key.find(:secret, sign_with)
       @encrypt_to = [encrypt_to].map { |k| GPGME::Key.find(:public, k) }.flatten
     end
 
@@ -54,7 +54,7 @@ module Watchy
     # Encrypts and signs the content passed as parameter with
     #   configured keys
     #
-    # @param [String] The data to sign and encrypt
+    # @param text [String] The data to sign and encrypt
     # @return [String] The signed and encrypted data as 
     #   an ASCII-armored string
     # 
@@ -65,7 +65,7 @@ module Watchy
     #
     # Clearsigns the given text with the auditor's GPG key
     #
-    # @param [String] The data to clearsign
+    # @param text [String] The data to clearsign
     # @return [String] The clearsigned text
     #
     def clearsign(text)
@@ -75,7 +75,7 @@ module Watchy
     #
     # Encrypts the given text with the configured private keys
     #
-    # @param [String] The text to encrypt
+    # @param text [String] The text to encrypt
     # @return [String] The encrypted text
     #
     def encrypt(text)

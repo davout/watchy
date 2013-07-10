@@ -20,9 +20,9 @@ module Watchy
     #
     # Initializes a report
     #
-    # @param [Mysql2::Client] The connection to issue queries against
-    # @param [Watchy::GPG] The GPG wrapper in charge of report signature and encryption
-    # @param [String] The path to the template file
+    # @param db [Mysql2::Client] The connection to issue queries against
+    # @param gpg [Watchy::GPG] The GPG wrapper in charge of report signature and encryption
+    # @param template_file [String] The path to the template file
     #
     def initialize(db, gpg, template_file = nil)
       @template_file  = template_file && File.expand_path(template_file)

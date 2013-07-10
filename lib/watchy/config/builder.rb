@@ -3,9 +3,14 @@ require 'docile'
 require 'watchy/config/db_config_builder'
 require 'watchy/config/gpg_config_builder'
 require 'watchy/config/audit_config_builder'
+require 'watchy/config/logger_config_builder'
 
 module Watchy
   module Config
+
+    #
+    # Builds a configuration hash using the block passed to the +Watchy.configure+ call
+    #
     class Builder
 
       #

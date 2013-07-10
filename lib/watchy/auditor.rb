@@ -48,16 +48,23 @@ module Watchy
       logger.info "Starting audit loop, interrupt with <Ctrl>-C ..."
 
       while(!interrupted) do
+        loop_start = Time.now
+
+        flag_row_deltas
+        #enforce_audit_rules
+
         copy_new_rows
 
-        # reporting = enforce_constraints
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
 
         run_reports!
-
         stamp_new_rows
+        # check_deletions
 
+        unflag_row_deltas
+
+        logger.info("Last loop took #{"%.2f" % (Time.now - loop_start)}s")
         logger.debug("Sleeping for #{config[:sleep_for]}s before next run ...")
         sleep(config[:sleep_for]) unless interrupted
       end
@@ -85,10 +92,25 @@ module Watchy
     end
 
     #
+    # Resets the +has_delta+ flag
+    #
+    def unflag_row_deltas
+      tables.each(&:unflag_row_deltas)
+    end
+
+    #
+    # Flags the rows that are different in the audited and audit DBs in
+    #   order to run the various audit rules against them
+    #
+    def flag_row_deltas
+      tables.each(&:flag_row_deltas)
+    end
+
+    #
     # Enforces the constraints defined on the watched tables
     #
-    def enforce_constraints
-      tables.each(&:enforce_constraints)
+    def enforce_audit_rules
+      tables.each(&:enforce_audit_rules)
     end
 
     #

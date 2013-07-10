@@ -96,6 +96,7 @@ module Watchy
       logger.info "Copying structure for table #{name} from watched to audit database"
       connection.query("CREATE TABLE #{audit} LIKE #{watched}")
       add_copied_at_field
+      add_has_delta_field
     end
 
     # 
@@ -126,6 +127,11 @@ module Watchy
       connection.query("ALTER TABLE #{audit} ADD `copied_at` TIMESTAMP NULL")
     end
 
+    def add_has_delta_field
+      logger.info "Adding #{name}.has_delta audit field..."
+      connection.query("ALTER TABLE #{audit} ADD `has_delta` TINYINT NOT NULL DEFAULT 0")
+    end
+
     #
     # Timestamp rows after they have been copied by updating the +copied_at+ field in the
     # audit table with the current timestamp.
@@ -144,17 +150,27 @@ module Watchy
 
       q = <<-EOF
         INSERT INTO #{audit}
-          SELECT *, NULL 
-          FROM #{watched}
-          WHERE NOT EXISTS (
-            SELECT * FROM #{audit} WHERE #{pkey_equality_condition} 
-          )
+          SELECT #{watched}.*, NULL, 0
+          FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition}
+          WHERE #{audit}.`copied_at` IS NULL
           EOF
 
           connection.query(q)
           cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `copied_at` IS NULL").to_a[0].flatten.to_a[1]
-          logger.info "Copied #{cnt} new rows."
+          logger.info "Copied #{cnt} new rows for table #{name}."
           cnt
+    end
+
+    def flag_row_deltas
+      logger.debug "Flagging row deltas for #{name}"
+      q = "SELECT * FROM #{audit} INNER JOIN #{watched} ON #{pkey_equality_condition} WHERE #{differences_filter}"
+      connection.query(q)
+    end
+
+    def unflag_row_deltas
+      logger.debug "Resetting row delta flags for #{name}"
+      q = "UPDATE #{audit} SET has_delta = 0"
+      connection.query(q)
     end
 
     #
@@ -168,7 +184,8 @@ module Watchy
           self,
           f['Field'],
           f['Type'],
-          f['Key'],
+          f['Null'],
+          f['Key'] == 'PRI',
           f['Default'],
           f['Extra']
         )

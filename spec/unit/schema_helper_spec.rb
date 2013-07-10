@@ -28,7 +28,12 @@ describe Watchy::SchemaHelper do
     end
 
     it 'should drop the existing audit schema if requested' do
-      Settings[:drop] = true
+      subject.stub(:config).and_return({
+        database: {
+          drop_audit_schema: true
+        }
+      })
+      #Settings[:drop_audit_schema] = true
       subject.stub(:connection).and_return(mock(Object))
       subject.stub(:schema_exists?).and_return(true)
 

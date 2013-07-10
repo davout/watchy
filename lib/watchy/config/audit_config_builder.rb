@@ -2,6 +2,11 @@ require 'watchy/config/table_config_builder'
 
 module Watchy
   module Config
+
+    #
+    # Handles building the configuration sub-hash describing what to audit
+    #   and how to audit it
+    #
     class AuditConfigBuilder
 
       def initialize
@@ -21,6 +26,11 @@ module Watchy
         end
       end
 
+      #
+      # Builds the audit configuration as a hash
+      #
+      # @return [Hash] The configuration hash for the audit specifics
+      #
       def build
         { audit: @config }
       end

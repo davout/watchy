@@ -9,8 +9,7 @@ module Watchy
       #
       # Returns the configuration hash given a builder and a configuration block
       #
-      # @param [Watchy::Config::Builder] The configuration builder
-      # @param [Proc] A user-provided configuration block 
+      # @param blk [Proc] A user-provided configuration block 
       # @return [Hash] The configuration hash
       #
       def self.get_from(&blk)

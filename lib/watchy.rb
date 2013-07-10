@@ -12,8 +12,6 @@ module Watchy
   # Creates a new +Watchy::Auditor+ instance and calls the +Watchy::Auditor#run!+ method on it
   #
   def self.boot!
-    @@config ||= {}
-    Settings(@@config)
     Watchy::Auditor.new(Settings).run!
   end
 
@@ -21,7 +19,7 @@ module Watchy
   # Sets the configuration of the instance using a cute little DSL
   #
   def self.configure(&block)
-    @@config = Watchy::Config::DSL.get_from(&block)
+    Settings(Watchy::Config::DSL.get_from(&block))
   end
 
 end

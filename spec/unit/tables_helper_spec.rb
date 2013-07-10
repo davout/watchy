@@ -8,12 +8,14 @@ describe Watchy::TablesHelper do
 
   describe '#bootstrap_audit_tables!' do
     it 'should create missing tables and check the existing ones' do
-      subject.should_receive(:watched_db).once.and_return('watch-me')
-      subject.stub(:connection).and_return(mock(Object))
-      subject.stub(:connection).and_return(mock(Object))
-      subject.connection.should_receive(:query).once.
-        with("SHOW TABLES FROM `watch-me`").
-        and_return([{ 'Table' => 'foo'}, { 'Table' => 'bar' }])
+      subject.should_receive(:config).and_return({
+        audit: {
+          tables: {
+            foo: {},
+            bar: {}
+          }
+        }
+      })
 
       existing_table = mock(Object)
       missing_table = mock(Object)
