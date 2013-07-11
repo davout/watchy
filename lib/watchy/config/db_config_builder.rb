@@ -13,12 +13,16 @@ module Watchy
       #
       # Sets the username to authenticate against the DB
       #
+      # @param u [String] The username to use when connecting to the database
+      #
       def username(u)
         @config[:username] = u
       end
 
       #
       # Sets the password
+      #
+      # @param p [String] The password to use when connecting to the database
       #
       def password(p)
         @config[:password] = p
@@ -27,12 +31,16 @@ module Watchy
       # 
       # Sets the host to connect to
       #
+      # @param h [String] The database server hostname
+      #
       def hostname(h)
         @config[:hostname] = h
       end
 
       #
       # Sets the port used for connecting
+      #
+      # @param p [Fixnum] The port to use for connecting to the database
       #
       def port(p)
         @config[:port] = p
@@ -41,6 +49,8 @@ module Watchy
       #
       # Defines the schema to audit
       # 
+      # @param s [String] The schema to audit
+      #
       def schema(s)
         @config[:schema] = s
       end
@@ -48,6 +58,8 @@ module Watchy
       #
       # Defines the schema to use as the audit metadata storage
       # 
+      # @param as [String] The schema to use as meta-data and audit data storage
+      #
       def audit_schema(as)
         @config[:audit_schema] = as
       end
@@ -61,7 +73,9 @@ module Watchy
       end
 
       #
-      # Builds the defined configuration as a has
+      # Builds the defined configuration as a hash
+      #
+      # @return [Hash] The configuration hash
       #
       def build
         { database: @config }

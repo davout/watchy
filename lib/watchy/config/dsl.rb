@@ -1,9 +1,17 @@
 require 'docile'
-
 require 'watchy/config/builder'
 
 module Watchy
+
+  #
+  # Wraps all configuration related concerns with the exception
+  #   of the configuration handled by the configliere gem
+  #
   module Config
+
+    #
+    # Wraps the docile DSL helper gem
+    #
     module DSL
 
       #

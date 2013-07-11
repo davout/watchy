@@ -127,6 +127,9 @@ module Watchy
       connection.query("ALTER TABLE #{audit} ADD `copied_at` TIMESTAMP NULL")
     end
 
+    #
+    # Adds a +has_delta TINYINT NOT NULL DEFAULT 0+ field to the audit table
+    #
     def add_has_delta_field
       logger.info "Adding #{name}.has_delta audit field..."
       connection.query("ALTER TABLE #{audit} ADD `has_delta` TINYINT NOT NULL DEFAULT 0")
@@ -161,12 +164,19 @@ module Watchy
           cnt
     end
 
+    #
+    # Flags the rows that are different in the audited and audit DBs, the rows are flagged
+    #   so that the constraints defined to be checked on updates are properly enforced
+    #
     def flag_row_deltas
       logger.debug "Flagging row deltas for #{name}"
       q = "SELECT * FROM #{audit} INNER JOIN #{watched} ON #{pkey_equality_condition} WHERE #{differences_filter}"
       connection.query(q)
     end
 
+    #
+    # Resets the delta flag, at the end of each auditing loop
+    #
     def unflag_row_deltas
       logger.debug "Resetting row delta flags for #{name}"
       q = "UPDATE #{audit} SET has_delta = 0"
