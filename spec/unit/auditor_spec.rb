@@ -74,6 +74,20 @@ describe Watchy::Auditor do
   describe 'when working with tables' do
     before { subject.stub(:tables).and_return([Object, Object, Object]) }
 
+    describe '#flag_row_deltas' do
+      it 'should call Table#flag_row_deltas for each audited table' do
+        subject.tables.each { |t| t.should_receive(:flag_row_deltas).once }
+        subject.flag_row_deltas
+      end
+    end
+
+    describe '#unflag_row_deltas' do
+      it 'should call Table#funlag_row_deltas for each audited table' do
+        subject.tables.each { |t| t.should_receive(:unflag_row_deltas).once }
+        subject.unflag_row_deltas
+      end
+    end
+
     describe '#copy_new_rows' do
       it 'should call Table#copy_new_rows for each audited table' do
         subject.tables.each { |t| t.should_receive(:copy_new_rows).once }

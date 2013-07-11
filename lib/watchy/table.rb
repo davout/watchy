@@ -170,8 +170,16 @@ module Watchy
     #
     def flag_row_deltas
       logger.debug "Flagging row deltas for #{name}"
-      q = "SELECT * FROM #{audit} INNER JOIN #{watched} ON #{pkey_equality_condition} WHERE #{differences_filter}"
-      connection.query(q)
+
+      q = "SELECT #{pkey_selection(audit)} FROM #{audit} INNER JOIN #{watched} ON #{pkey_equality_condition} WHERE #{differences_filter}"
+      r = connection.query(q).to_a
+
+      unless r.count.zero?
+        q = "UPDATE #{audit} SET `has_delta` = 1 WHERE #{condition_from_hashes_array(r, audit)}"
+        connection.query(q) 
+
+        logger.warn "Flagged #{r.count} rows for check in #{name}" 
+      end
     end
 
     #
@@ -179,7 +187,7 @@ module Watchy
     #
     def unflag_row_deltas
       logger.debug "Resetting row delta flags for #{name}"
-      q = "UPDATE #{audit} SET has_delta = 0"
+      q = "UPDATE #{audit} SET `has_delta` = 0"
       connection.query(q)
     end
 
@@ -216,12 +224,55 @@ module Watchy
     end
 
     #
+    # Returns the primary key fields as a string directly usable in a +SELECT+ clause
+    #
+    # @param table [String] The table alias to use for prefixing the identifier, may be omitted
+    # @return [String] The +SELECT+ compatible field list
+    #
+    def pkey_selection(table = nil)
+      prefix = table ? "#{table}." : ""
+      "#{primary_key.map { |k| "#{prefix}`#{k}` AS '#{k}'" }.join(', ')}"
+    end
+
+    #
     # Returns the primary key equality condition
     #
     # @return [String] A SQL fragment used as +INNER JOIN+ condition to join the watched and audited tables
     #
     def pkey_equality_condition
-      "(#{[primary_key].flatten.map { |k| "#{watched}.`#{k}` = #{audit}.`#{k}`" }.join(' AND ')})"
+      "(#{primary_key.map { |k| "#{watched}.`#{k}` = #{audit}.`#{k}`" }.join(' AND ')})"
+    end
+
+    #
+    # Returns a SQL +WHERE+ condition given an array of hashes containing field names
+    #   as keys and constrained values as values
+    #
+    # @param p [Array<Hash>] Array of conditions expressed as hashes
+    # @param table [String] The table alias to use for prefixing the identifier, may be omitted
+    # @return [String] A SQL +WHERE+ fragment
+    #
+    def condition_from_hashes_array(p, table = nil)
+      prefix = table ? "#{table}." : ""
+
+      cond_or = p.map do |h|
+        cond_and = h.map do |k,v|
+          "#{prefix}`#{k}` = #{escaped_value(v)}"
+        end
+
+        "(#{cond_and.join(' AND ')})"
+      end
+
+      "(#{cond_or.join(' OR ')})"
+    end
+
+    # 
+    # Escapes +String+ values with simple quotes
+    #
+    # @param o [Object] An object which may require its string representation to be escaped for SQL
+    # @return [String] The escaped string representation of the object
+    #
+    def escaped_value(o)
+      o.is_a?(String) ? "'#{o}'" : o.to_s
     end
 
   end

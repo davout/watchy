@@ -17,8 +17,9 @@ module Watchy
       #
       # @param block [Proc] The configuration block for this table
       #
-      def field(&block)
-        @config[:field] << Docile.dsl_eval(Watchy::Config::FieldConfigBuilder.new, &block).build
+      def field(name, &block)
+        @config[:fields] ||= {}
+        @config[:fields][name] = Docile.dsl_eval(Watchy::Config::FieldConfigBuilder.new, &block).build
       end
 
       #

@@ -12,4 +12,12 @@ describe Watchy do
       Watchy.boot!
     end
   end
+
+  describe '.configure' do
+    it 'should merge DSL gathered settings with the configliere hash' do
+      Settings.should_receive(:defaults).once
+      Watchy::Config::DSL.should_receive(:get_from).once.and_return({})
+      Watchy.configure {}
+    end
+  end
 end

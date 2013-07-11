@@ -36,7 +36,7 @@ module Watchy
       # @return [Hash] The configuration hash
       #
       def build
-        @config[:encrypt_to].flatten.uniq!
+        @config[:encrypt_to].flatten!.uniq!
         { gpg: @config }
       end
 

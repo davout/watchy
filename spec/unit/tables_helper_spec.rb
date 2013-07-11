@@ -30,4 +30,27 @@ describe Watchy::TablesHelper do
       subject.bootstrap_audit_tables!
     end
   end
+
+  describe '#tables' do
+
+    before do
+      subject.stub(:config).and_return({
+        audit: {
+          tables: {
+            'yoodeloo' => {},
+            'yoodelaa' => {}
+          }
+        }
+      })
+
+      Watchy::Table.stub(:new).and_return(:yoo, :yaa)
+    end
+
+    it 'should instantiate a Watchy::Table object for each configured table' do
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodeloo')
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodelaa')
+
+      subject.tables.should eql([:yoo, :yaa])
+    end
+  end
 end

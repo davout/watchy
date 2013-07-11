@@ -38,7 +38,7 @@ module Watchy
     def initialize(sign_with, encrypt_to = [], options = {})
       @options = DEFAULT_OPTIONS.merge(options) 
       @sign_with  = GPGME::Key.find(:secret, sign_with)
-      @encrypt_to = [encrypt_to].map { |k| GPGME::Key.find(:public, k) }.flatten
+      @encrypt_to = [encrypt_to].flatten.map { |k| GPGME::Key.find(:public, k) }.flatten
     end
 
     #

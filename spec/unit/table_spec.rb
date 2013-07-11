@@ -135,4 +135,31 @@ describe 'Watchy::Table' do
       subject.pkey_equality_condition.should eql(expected)
     end
   end
+
+  describe '#flag_row_deltas' do
+    before do
+      subject.connection.stub(:query).and_return([{ 'id' => 42 }])
+      subject.stub(:primary_key).and_return(['id'])
+      subject.stub(:differences_filter)
+      subject.stub(:audit).and_return('`yoodeloo`')
+    end
+
+    it 'should flag the rows identified as being different' do
+      subject.connection.should_receive(:query)
+      subject.connection.should_receive(:query).
+        with("UPDATE `yoodeloo` SET `has_delta` = 1 WHERE ((`yoodeloo`.`id` = 42))")
+
+      subject.flag_row_deltas
+    end
+  end
+
+  describe '#unflag_row_deltas' do
+    before { subject.stub(:audit).and_return('`klakendaschen`') }
+
+    it 'should issue the correct update statement' do
+      subject.connection.should_receive(:query).once.with('UPDATE `klakendaschen` SET `has_delta` = 0')
+      subject.unflag_row_deltas
+    end
+  end
+
 end
