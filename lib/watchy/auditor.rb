@@ -51,7 +51,8 @@ module Watchy
         loop_start = Time.now
 
         flag_row_deltas
-        #enforce_audit_rules
+        
+        check_rules
 
         copy_new_rows
 
@@ -109,8 +110,9 @@ module Watchy
     #
     # Enforces the constraints defined on the watched tables
     #
-    def enforce_audit_rules
-      tables.each(&:enforce_audit_rules)
+    def check_rules
+      tables.each(&:check_rules_on_update)
+      tables.each(&:check_rules_on_insert)
     end
 
     #

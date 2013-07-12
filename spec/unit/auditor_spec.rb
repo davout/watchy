@@ -52,6 +52,7 @@ describe Watchy::Auditor do
       subject.stub(:run_reports!)
       subject.stub(:flag_row_deltas)
       subject.stub(:unflag_row_deltas)
+      subject.stub(:check_rules)
     end
 
     it 'should copy new rows to the audit database' do
@@ -102,10 +103,10 @@ describe Watchy::Auditor do
       end
     end
 
-    describe '#enforce_audit_rules' do
-      it 'should call Table#enforce_constraints for each audited table' do
-        subject.tables.each { |t| t.should_receive(:enforce_audit_rules).once }
-        subject.enforce_audit_rules
+    describe '#check_rules' do
+      it 'should call Table#check_rules for each audited table' do
+        subject.tables.each { |t| t.should_receive(:check_rules).once }
+        subject.check_rules
       end
     end
   end

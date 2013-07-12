@@ -192,6 +192,27 @@ module Watchy
     end
 
     #
+    # Enforces all the defined rules and constraints on the rows flagged
+    #   as having deltas when compared to the original rows.  Each constraint 
+    #   violation gets logged in order to be reported upon.
+    #
+    def check_rules_on_update
+      rules[:update].each do
+        # Call rule passing both rows as arguments
+      end
+    end
+
+    #
+    # Enforces all the defined rules and constraints on the new rows
+    #   Each constraint violation gets logged in order to be reported upon.
+    #
+    def check_rules_on_insert
+      rules[:insert].each do
+        # Call rule passing inserted row as argument
+      end
+    end
+
+    #
     # Return the table's fields
     #
     # @return [Array] An array of the table's fields
