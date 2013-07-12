@@ -54,10 +54,19 @@ describe Watchy::Config::DSL do
 
         audit: {
           tables: {
-            foo: {},
+            foo: {
+              rules: {
+                update: [],
+                insert: []
+              }
+            },
             bar: {
               fields: {
                 baz: {}
+              },
+              rules: {
+                insert: [],
+                update: []
               }
             }
           }

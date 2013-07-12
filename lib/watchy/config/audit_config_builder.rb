@@ -22,7 +22,12 @@ module Watchy
         if block
           @config[:tables][name] = Docile.dsl_eval(Watchy::Config::TableConfigBuilder.new, &block).build
         else
-          @config[:tables][name] = {}
+          @config[:tables][name] = {
+            rules: {
+              insert: [],
+              update: []
+            }
+          }
         end
       end
 

@@ -2,7 +2,7 @@ require_relative '../spec_helper.rb'
 
 describe 'Watchy::Table' do
 
-  subject { Watchy::Table.new(mock(Object).as_null_object, 'baz') }
+  subject { Watchy::Table.new(mock(Object).as_null_object, 'baz', { update: [], insert: []}) }
 
   describe '#watched' do
     it 'should return the fully qualified audited table name' do
@@ -72,21 +72,21 @@ describe 'Watchy::Table' do
     end
 
     it 'should succeed if the audit table has an extra copied_at field' do
-      subject.connection.stub(:query).and_return([], [{ 'Field' => 'copied_at' }])
+      subject.connection.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, { 'Field' => '_has_delta'}])
       subject.logger.should_receive(:info)
       subject.check_for_structure_changes!
     end
 
     it 'should fail when the copied_at field is not present in the audit table' do
       subject.connection.stub(:query).and_return([], [])
-      expect { subject.check_for_structure_changes! }.to raise_error("Missing 'copied_at' field in audit table 'baz'!")
+      expect { subject.check_for_structure_changes! }.to raise_error("Missing meta-data fields in audit table 'baz'!")
     end
   end
 
   describe '#add_copied_at_field' do
     it 'should issue the correct ALTER statement to the database' do
       subject.auditor.should_receive(:audit_db).once.and_return('foo')
-      subject.connection.should_receive(:query).with("ALTER TABLE `foo`.`baz` ADD `copied_at` TIMESTAMP NULL").once
+      subject.connection.should_receive(:query).with("ALTER TABLE `foo`.`baz` ADD `_copied_at` TIMESTAMP NULL").once
       subject.add_copied_at_field
     end
   end
@@ -94,7 +94,7 @@ describe 'Watchy::Table' do
   describe '#stamp_new_rows' do
     it 'should issue the correct UPDATE statement to the database' do
       subject.auditor.should_receive(:audit_db).once.and_return('foo')
-      subject.connection.should_receive(:query).with("UPDATE `foo`.`baz` SET `copied_at` = NOW() WHERE `copied_at` IS NULL").once
+      subject.connection.should_receive(:query).with("UPDATE `foo`.`baz` SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL").once
       subject.stamp_new_rows
     end
   end
@@ -147,7 +147,7 @@ describe 'Watchy::Table' do
     it 'should flag the rows identified as being different' do
       subject.connection.should_receive(:query)
       subject.connection.should_receive(:query).
-        with("UPDATE `yoodeloo` SET `has_delta` = 1 WHERE ((`yoodeloo`.`id` = 42))")
+        with("UPDATE `yoodeloo` SET `_has_delta` = 1 WHERE ((`yoodeloo`.`id` = 42))")
 
       subject.flag_row_deltas
     end
@@ -157,7 +157,7 @@ describe 'Watchy::Table' do
     before { subject.stub(:audit).and_return('`klakendaschen`') }
 
     it 'should issue the correct update statement' do
-      subject.connection.should_receive(:query).once.with('UPDATE `klakendaschen` SET `has_delta` = 0')
+      subject.connection.should_receive(:query).once.with('UPDATE `klakendaschen` SET `_has_delta` = 0')
       subject.unflag_row_deltas
     end
   end

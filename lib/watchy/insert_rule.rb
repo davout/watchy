@@ -7,14 +7,13 @@ module Watchy
   #
   class InsertRule < Watchy::Rule
 
-    def initialize(&block)
+    def initialize(name = nil, &block)
       raise 'Must supply a block accepting a single parameter' unless (block.arity == 1)
-      self.rule_code = block
+      super(name, &block)
     end
 
     def execute(row)
-      r  = block.call(row)
-      record_violations(r)
+      rule_code.call(row)
     end
 
   end

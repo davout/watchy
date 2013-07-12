@@ -51,21 +51,20 @@ module Watchy
         loop_start = Time.now
 
         flag_row_deltas
-        
-        check_rules
-
         copy_new_rows
+        # check_deletions
+
+        check_rules
 
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
-
         run_reports!
-        stamp_new_rows
-        # check_deletions
 
+        stamp_new_rows
         unflag_row_deltas
 
         logger.info("Last loop took #{"%.2f" % (Time.now - loop_start)}s")
+
         logger.debug("Sleeping for #{config[:sleep_for]}s before next run ...")
         sleep(config[:sleep_for]) unless interrupted
       end

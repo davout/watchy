@@ -105,7 +105,8 @@ describe Watchy::Auditor do
 
     describe '#check_rules' do
       it 'should call Table#check_rules for each audited table' do
-        subject.tables.each { |t| t.should_receive(:check_rules).once }
+        subject.tables.each { |t| t.should_receive(:check_rules_on_update).once }
+        subject.tables.each { |t| t.should_receive(:check_rules_on_insert).once }
         subject.check_rules
       end
     end

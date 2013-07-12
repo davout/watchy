@@ -1,4 +1,5 @@
 require 'watchy/field'
+require 'base64'
 
 module Watchy
 
@@ -7,7 +8,12 @@ module Watchy
   #
   class Table
 
-    attr_accessor :name, :columns, :auditor, :connection, :logger
+    #
+    # The field names used internally for auditing
+    #
+    METADATA_FIELDS = %w{ _copied_at _has_delta }
+
+    attr_accessor :name, :columns, :auditor, :connection, :logger, :rules
 
     #
     # Initializes a table given an +auditor+ and a +name+
@@ -15,10 +21,11 @@ module Watchy
     # @param auditor [Watchy::Auditor] The current +Watchy::Auditor+ instance
     # @param name [String] The table name in the audited schema
     #
-    def initialize(auditor, name)
+    def initialize(auditor, name, rules)
       @connection = auditor.connection
       @logger     = auditor.logger
       @auditor    = auditor
+      @rules      = rules
       @name       = name
     end
 
@@ -107,13 +114,13 @@ module Watchy
       watched_fields = connection.query("DESC #{watched}").to_a
       audit_fields   = connection.query("DESC #{audit}").to_a
       delta = watched_fields - audit_fields
-      delta = [delta, (audit_fields - watched_fields).reject { |i| i['Field'] == 'copied_at' }].flatten
-      copied_at_field_present = (audit_fields - watched_fields).any? { |i| i['Field'] == 'copied_at' }
+      delta = [delta, (audit_fields - watched_fields).reject { |i| METADATA_FIELDS.include?(i['Field']) }].flatten
+      metadata_present = METADATA_FIELDS.all? { |f| (audit_fields - watched_fields).map { |i| i['Field'] }.include?(f) }
 
       if !delta.empty?
         raise "Structure has changed for table '#{name}'!"
-      elsif !copied_at_field_present
-        raise "Missing 'copied_at' field in audit table '#{name}'!"
+      elsif !metadata_present
+        raise "Missing meta-data fields in audit table '#{name}'!"
       else
         logger.info "Audit table #{name} is up to date."
       end
@@ -124,7 +131,7 @@ module Watchy
     #
     def add_copied_at_field
       logger.info "Adding #{name}.copied_at audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `copied_at` TIMESTAMP NULL")
+      connection.query("ALTER TABLE #{audit} ADD `_copied_at` TIMESTAMP NULL")
     end
 
     #
@@ -132,7 +139,7 @@ module Watchy
     #
     def add_has_delta_field
       logger.info "Adding #{name}.has_delta audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `has_delta` TINYINT NOT NULL DEFAULT 0")
+      connection.query("ALTER TABLE #{audit} ADD `_has_delta` TINYINT NOT NULL DEFAULT 0")
     end
 
     #
@@ -140,7 +147,7 @@ module Watchy
     # audit table with the current timestamp.
     #
     def stamp_new_rows
-      connection.query("UPDATE #{audit} SET `copied_at` = NOW() WHERE `copied_at` IS NULL")
+      connection.query("UPDATE #{audit} SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL")
     end
 
     #
@@ -155,11 +162,11 @@ module Watchy
         INSERT INTO #{audit}
           SELECT #{watched}.*, NULL, 0
           FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition}
-          WHERE #{audit}.`copied_at` IS NULL
+          WHERE #{audit}.`_copied_at` IS NULL
           EOF
 
           connection.query(q)
-          cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `copied_at` IS NULL").to_a[0].flatten.to_a[1]
+          cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
           logger.info "Copied #{cnt} new rows for table #{name}."
           cnt
     end
@@ -175,7 +182,7 @@ module Watchy
       r = connection.query(q).to_a
 
       unless r.count.zero?
-        q = "UPDATE #{audit} SET `has_delta` = 1 WHERE #{condition_from_hashes_array(r, audit)}"
+        q = "UPDATE #{audit} SET `_has_delta` = 1 WHERE #{condition_from_hashes(r, audit)}"
         connection.query(q) 
 
         logger.warn "Flagged #{r.count} rows for check in #{name}" 
@@ -187,7 +194,7 @@ module Watchy
     #
     def unflag_row_deltas
       logger.debug "Resetting row delta flags for #{name}"
-      q = "UPDATE #{audit} SET `has_delta` = 0"
+      q = "UPDATE #{audit} SET `_has_delta` = 0"
       connection.query(q)
     end
 
@@ -197,8 +204,23 @@ module Watchy
     #   violation gets logged in order to be reported upon.
     #
     def check_rules_on_update
-      rules[:update].each do
-        # Call rule passing both rows as arguments
+      logger.debug "Running UPDATE checks for #{name}"
+
+      rules[:update].each do |rule|
+        connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
+          pkey = audit_row.select { |k,v| primary_key.include?(k) }
+
+          watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
+          watched_row = connection.query(watched_row_query).first
+
+          unless watched_row
+            logger.fatal 'Row was deleted before we got a chance to take a look at it! The statement was:'
+            logger.fatal watched_row_query
+          end
+
+          v = rule.execute(audit_row, watched_row)
+          record_violation(v, [audit_row, watched_row].inspect, rule.name) if v
+        end
       end
     end
 
@@ -207,9 +229,33 @@ module Watchy
     #   Each constraint violation gets logged in order to be reported upon.
     #
     def check_rules_on_insert
-      rules[:insert].each do
-        # Call rule passing inserted row as argument
+      logger.debug "Running INSERT checks for #{name}"
+
+      rules[:insert].each do |rule|
+        connection.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
+          v = rule.execute(audit_row)
+          record_violation(v, audit_row.inspect, rule.name) if v
+        end
       end
+    end
+
+    #
+    # Records rule violations in a dedicated table
+    #
+    # @param v [Array<Hash>] The rule violations as returned by a rule execution
+    #
+    def record_violation(v, item, rule_name)
+      stamp = Time.now.to_i
+      fingerprint = Digest::SHA2.hexdigest("#{item}-#{name}-#{v}")
+
+      already_exists = connection.query("SELECT COUNT(*) AS CNT FROM `#{auditor.audit_db}`.`_rule_violations` WHERE `fingerprint` = '#{fingerprint}'").to_a[0]['CNT'] > 0
+
+      q = <<-EOF
+        INSERT INTO `#{auditor.audit_db}`.`_rule_violations` (`fingerprint`, `audited_table`, `name`, `stamp`, `description`, `item`)
+        VALUES ('#{fingerprint}', '#{name}', '#{rule_name || ''}', #{stamp}, '#{connection.escape(v)}', '#{connection.escape(item.inspect)}')
+      EOF
+
+      connection.query(q) unless already_exists
     end
 
     #
@@ -268,17 +314,19 @@ module Watchy
     # Returns a SQL +WHERE+ condition given an array of hashes containing field names
     #   as keys and constrained values as values
     #
-    # @param p [Array<Hash>] Array of conditions expressed as hashes
+    # @param p [Array<Hash>] Hash or array of conditions expressed as hashes
     # @param table [String] The table alias to use for prefixing the identifier, may be omitted
     # @return [String] A SQL +WHERE+ fragment
     #
-    def condition_from_hashes_array(p, table = nil)
+    def condition_from_hashes(p, table = nil)
       prefix = table ? "#{table}." : ""
 
-      cond_or = p.map do |h|
+      cond_or = [p].flatten.map do |h|
         cond_and = h.map do |k,v|
-          "#{prefix}`#{k}` = #{escaped_value(v)}"
-        end
+          if v && !METADATA_FIELDS.include?(k)
+            "#{prefix}`#{k}` = #{escaped_value(v)}"
+          end
+        end.compact
 
         "(#{cond_and.join(' AND ')})"
       end
@@ -293,7 +341,7 @@ module Watchy
     # @return [String] The escaped string representation of the object
     #
     def escaped_value(o)
-      o.is_a?(String) ? "'#{o}'" : o.to_s
+      (o.is_a?(String) || o.is_a?(Time)) ? "'#{o}'" : o.to_s
     end
 
   end

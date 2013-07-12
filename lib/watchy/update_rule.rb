@@ -7,14 +7,13 @@ module Watchy
   #
   class UpdateRule < Watchy::Rule
 
-    def initialize(&block)
+    def initialize(name = nil, &block)
       raise 'Must supply a block accepting two parameters' unless (block.arity == 2)
-      self.rule_code = block
+      super(name, &block)
     end
 
     def execute(original_row, updated_row)
-      r  = block.call(original_row, updated_row)
-      record_violations(r)
+      rule_code.call(original_row, updated_row)
     end
 
   end

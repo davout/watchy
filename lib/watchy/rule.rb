@@ -1,7 +1,7 @@
 module Watchy
 
   #
-  # Base clas for the audit rules definition
+  # Base class for the audit rules definition
   #
   class Rule
 
@@ -11,12 +11,13 @@ module Watchy
     attr_accessor :rule_code
 
     #
-    # Records rule violations in a dedicated table
+    # The rule's optional name
     #
-    # @param v [Array<Hash>] The rule violations as returned by a rule execution
-    #
-    def record_violations(v)
-      raise 'Implement me'
+    attr_accessor :name
+
+    def initialize(name = nil, &block)
+      self.name = name
+      self.rule_code = block
     end
   end
 end
