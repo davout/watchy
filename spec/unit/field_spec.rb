@@ -2,7 +2,10 @@ require_relative '../spec_helper.rb'
 
 describe Watchy::Field do
 
-  subject { Watchy::Field.new(Object.new, 'field', 'some-type') }
+  subject do
+    Watchy::Field.any_instance.stub(:read_rules)
+    Watchy::Field.new(Object.new, 'field', 'some-type', nil)
+  end
 
   before do
     table = mock(Object).as_null_object

@@ -53,8 +53,22 @@ describe Watchy::TablesHelper do
   end
 
   describe '#add_metadata_tables' do
+    before do
+      subject.stub(:audit_db)
+      subject.stub(:connection).and_return(mock(Object).as_null_object)
+      Dummy.any_instance.stub(:logger).and_return(mock(Object).as_null_object)
+    end
+
     it 'should execute the creation DDL statements' do
-subject.add_metadata_tables!
+      Watchy::Table.stub(:exists?).and_return(false)
+      subject.should_receive(:connection).twice
+      subject.add_metadata_tables!
+    end
+
+    it 'should not execute the creation DDL statementsi if the table already exists' do
+      Watchy::Table.stub(:exists?).and_return(true)
+      subject.should_receive(:connection).once
+      subject.add_metadata_tables!
     end
   end
 end

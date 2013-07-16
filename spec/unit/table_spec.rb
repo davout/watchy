@@ -22,7 +22,7 @@ describe 'Watchy::Table' do
 
   describe '#primary_key' do
     before do
-      f = [ Watchy::Field.new(subject, 'foo', 'INT', false, true), Watchy::Field.new(subject, 'bar', 'INT') ]
+      f = [ Watchy::Field.new(subject, 'foo', 'INT', nil, false, true), Watchy::Field.new(subject, 'bar', 'INT', nil) ]
       subject.stub(:fields).and_return(f)
     end
 
@@ -159,6 +159,22 @@ describe 'Watchy::Table' do
     it 'should issue the correct update statement' do
       subject.connection.should_receive(:query).once.with('UPDATE `klakendaschen` SET `_has_delta` = 0')
       subject.unflag_row_deltas
+    end
+  end
+
+  describe '#record_violation' do
+
+    before do
+      c = mock(Object).as_null_object
+      subject.stub(:connection).and_return(c)
+    end
+
+
+    it 'should record an audit violation correctly' do
+      subject.connection.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
+      subject.connection.should_receive(:query).once
+      subject.connection.should_receive(:escape).twice
+      subject.record_violation('pouet', {}, 'prutendelschnitzeln')
     end
   end
 

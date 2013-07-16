@@ -1,6 +1,7 @@
-require_relative '../../spec_helper.rb'
+require_relative '../../spec_helper'
 
-describe Watchy::Config::TableConfigBuilder do
+describe Watchy::Config::FieldConfigBuilder do
+
   describe '#on_update' do
     it 'should add an update rule' do 
       Watchy::UpdateRule.should_receive(:new)
@@ -15,4 +16,3 @@ describe Watchy::Config::TableConfigBuilder do
     end
   end
 end
-

@@ -5,21 +5,27 @@ module Watchy
   #
   module TablesHelper
 
-    METADATA_TABLES = {
-      :_rule_violations => <<-EOS
+    #
+    # Returns the DDL for creating the metadata tables
+    #
+    # @return [String] Metadata SQL tables creation
+    #
+    def metadata_tables_ddl
+      {
+        '_rule_violations' => <<-EOS
           CREATE TABLE `#{audit_db}`.`_rule_violations` (
             `id` INT NOT NULL AUTO_INCREMENT,
             `fingerprint` VARCHAR(64) NOT NULL,
             `audited_table` VARCHAR(255) NOT NULL,
             `name` VARCHAR(255) NULL,
-            `stamp` TIMESTAMP NOT NULL,
+            `stamp` BIGINT NOT NULL,
             `description` VARCHAR(255) NOT NULL,
             `item` TEXT NULL,
             PRIMARY KEY (`id`),
             UNIQUE INDEX `fingerprint_UNIQUE` (`fingerprint` ASC) )
-      EOS
-    }
-
+        EOS
+      }
+    end
     #
     # Bootstrap all the audited tables copies in the audit database
     #
@@ -40,8 +46,8 @@ module Watchy
     end
 
     def add_metadata_tables!
-      METADATA_TABLES.each do |table, ddl_script|
-        if connection.query("SHOW TABLES FROM `#{audit_db}`").to_a.map { |i| i.to_a.flatten[1] }.include?(table.to_s)
+      metadata_tables_ddl.each do |table, ddl_script|
+        if Table.exists?(connection, audit_db, table)
           logger.info "Table #{table} already exists."
         else
           logger.info "Creating table #{table} on the audit database"

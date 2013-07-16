@@ -44,7 +44,7 @@ module Watchy
     # Initializes a field given a table, a field name, its type, whether it is nullable,
     # whether it is part of the primary key, its default value and its extra attribues
     #
-    def initialize(table, name, type, nullable = true, key = false, default = nil, extra = nil)
+    def initialize(table, name, type, rules, nullable = true, key = false, default = nil, extra = nil)
       @table    = table
       @name     = name
       @type     = type
@@ -52,6 +52,7 @@ module Watchy
       @key      = key
       @default  = default
       @extra    = extra
+      @rules    = read_rules
     end
 
     #
@@ -81,6 +82,59 @@ module Watchy
     #
     def audit
       "#{table.audit}.`#{name}`"
+    end
+
+    def rules(event)
+      @rules[event]
+    end
+
+    def on_update(watched_row, audit_row)
+      rules(:update).inject([]) do |violations, rule|
+        v = rule.execute(watched_row, audit_row)
+
+        if v
+          violations << {
+            rule_name: rule.name,
+            description: v,
+            item: [watched_row, audit_row]
+          }
+        end
+
+        violations
+      end.compact
+    end
+
+    def on_insert(audit_row)
+      rules(:insert).inject([]) do |violations, rule|
+        v = rule.execute(audit_row)
+
+        if v
+          violations << {
+            rule_name: rule.name,
+            description: v,
+            item: audit_row
+          }
+        end
+
+        violations
+      end.compact
+    end
+
+    def read_rules
+      fields = table.auditor.config[:audit][:tables][table.name.to_sym][:fields]
+      config = fields && fields[name.to_sym]
+
+      if config
+        config[:rules]
+      else
+        {
+          insert: [],
+          update: [
+            Watchy::UpdateRule.new(:should_not_change) do |watched_row, audit_row|
+            end
+          ]
+        }
+      end
     end
   end
 end

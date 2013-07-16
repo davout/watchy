@@ -93,7 +93,7 @@ module Watchy
     # @return [Boolean] Whether the audit table exists
     #
     def exists?
-      connection.query("SHOW TABLES FROM `#{auditor.audit_db}`").to_a.map { |i| i.to_a.flatten[1] }.include?(name)
+      Table.exists?(connection, auditor.audit_db, name)
     end
 
     #
@@ -204,22 +204,32 @@ module Watchy
     #   violation gets logged in order to be reported upon.
     #
     def check_rules_on_update
+
+      # TODO : If has_delta is always checked rows will start accumulating and it'll all slow down
+
       logger.debug "Running UPDATE checks for #{name}"
 
-      rules[:update].each do |rule|
-        connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
-          pkey = audit_row.select { |k,v| primary_key.include?(k) }
+      connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
 
-          watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
-          watched_row = connection.query(watched_row_query).first
+        pkey = audit_row.select { |k,v| primary_key.include?(k) }
 
-          unless watched_row
-            logger.fatal 'Row was deleted before we got a chance to take a look at it! The statement was:'
-            logger.fatal watched_row_query
-          end
+        watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
+        watched_row = connection.query(watched_row_query).first
 
-          v = rule.execute(audit_row, watched_row)
-          record_violation(v, [audit_row, watched_row].inspect, rule.name) if v
+        unless watched_row
+          logger.fatal 'Row was deleted before we got a chance to take a look at it! The statement was:'
+          logger.fatal watched_row_query
+        end
+
+        fields.each do |f|
+          logger.debug "Executing INSERT audit rules for field '#{f.name}'"
+          violations = f.on_update(watched_row, audit_row)
+          violations.compact.each { |v| record_violation(v[:description], [audit_row, watched_row], v[:rule_name]) }
+        end
+
+        rules[:update].each do |rule|
+          v = rule.execute(watched_row, audit_row)
+          record_violation(v, [watched_row, audit_row], rule.name) if v
         end
       end
     end
@@ -231,10 +241,16 @@ module Watchy
     def check_rules_on_insert
       logger.debug "Running INSERT checks for #{name}"
 
-      rules[:insert].each do |rule|
-        connection.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
+      connection.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
+        fields.each do |f|
+          logger.debug "Executing INSERT audit rules for field '#{f.name}'"
+          violations = f.on_insert(audit_row)
+          violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name]) }
+        end
+
+        rules[:insert].each do |rule|
           v = rule.execute(audit_row)
-          record_violation(v, audit_row.inspect, rule.name) if v
+          record_violation(v, audit_row, rule.name) if v
         end
       end
     end
@@ -246,7 +262,9 @@ module Watchy
     #
     def record_violation(v, item, rule_name)
       stamp = Time.now.to_i
-      fingerprint = Digest::SHA2.hexdigest("#{item}-#{name}-#{v}")
+      serialized = [item].flatten.map { |i| i.inject({}) { |memo, obj| memo[obj[0].to_s] = obj[1].to_s; memo } }.inspect
+      violation = "#{serialized}-#{name}-#{v}"
+      fingerprint = Digest::SHA2.hexdigest(violation)
 
       already_exists = connection.query("SELECT COUNT(*) AS CNT FROM `#{auditor.audit_db}`.`_rule_violations` WHERE `fingerprint` = '#{fingerprint}'").to_a[0]['CNT'] > 0
 
@@ -342,6 +360,18 @@ module Watchy
     #
     def escaped_value(o)
       (o.is_a?(String) || o.is_a?(Time)) ? "'#{o}'" : o.to_s
+    end
+
+    #
+    # Tests whether the table exists in the given schema
+    #
+    # @param connection [Mysql2::Client] The database connection to use
+    # @param schema [String] The schema in which the table existence should be checked
+    # @param table [String] The table name whose existence should be checked
+    # @return [Boolean] Whether the audit table exists
+    #
+    def self.exists?(connection, schema, table)
+      connection.query("SHOW TABLES FROM `#{schema}`").to_a.map { |i| i.to_a.flatten[1] }.include?(table)
     end
 
   end

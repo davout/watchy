@@ -62,7 +62,12 @@ describe Watchy::Config::DSL do
             },
             bar: {
               fields: {
-                baz: {}
+                baz: {
+                  rules: {
+                    insert: [],
+                    update: []
+                  }
+                }
               },
               rules: {
                 insert: [],
