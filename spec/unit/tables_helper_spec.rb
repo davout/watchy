@@ -65,7 +65,7 @@ describe Watchy::TablesHelper do
       subject.add_metadata_tables!
     end
 
-    it 'should not execute the creation DDL statementsi if the table already exists' do
+    it 'should not execute the creation DDL statements if the table already exists' do
       Watchy::Table.stub(:exists?).and_return(true)
       subject.should_receive(:connection).once
       subject.add_metadata_tables!
