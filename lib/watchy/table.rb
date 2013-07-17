@@ -216,20 +216,19 @@ module Watchy
         watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
         watched_row = connection.query(watched_row_query).first
 
-        unless watched_row
-          logger.fatal 'Row was deleted before we got a chance to take a look at it! The statement was:'
-          logger.fatal watched_row_query
-        end
+        # If we do not have a matched row here it'll show in the deletion checks, so we
+        # do nothing specific here
+        if watched_row
+          fields.each do |f|
+            logger.debug "Executing INSERT audit rules for field '#{f.name}'"
+            violations = f.on_update(watched_row, audit_row)
+            violations.compact.each { |v| record_violation(v[:description], [audit_row, watched_row], v[:rule_name]) }
+          end
 
-        fields.each do |f|
-          logger.debug "Executing INSERT audit rules for field '#{f.name}'"
-          violations = f.on_update(watched_row, audit_row)
-          violations.compact.each { |v| record_violation(v[:description], [audit_row, watched_row], v[:rule_name]) }
-        end
-
-        rules[:update].each do |rule|
-          v = rule.execute(watched_row, audit_row)
-          record_violation(v, [watched_row, audit_row], rule.name) if v
+          rules[:update].each do |rule|
+            v = rule.execute(watched_row, audit_row)
+            record_violation(v, [watched_row, audit_row], rule.name) if v
+          end
         end
       end
     end

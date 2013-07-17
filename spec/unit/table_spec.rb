@@ -169,13 +169,25 @@ describe 'Watchy::Table' do
       subject.stub(:connection).and_return(c)
     end
 
-
     it 'should record an audit violation correctly' do
       subject.connection.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
       subject.connection.should_receive(:query).once
       subject.connection.should_receive(:escape).twice
       subject.record_violation('pouet', {}, 'prutendelschnitzeln')
     end
+  end
+
+  describe '#check_rules_on_update' do
+    it 'should check all rules defined on the row and all rules defined on all fields' do
+      subject.connection.should_receive(:query).and_return([{ 'id' => 1 }])
+      subject.should_receive(:primary_key).and_return(['id'])
+      subject.should_receive(:fields).and_return([])
+
+      subject.check_rules_on_update
+    end
+  end
+
+  describe '#check_rules_on_insert' do
   end
 
 end
