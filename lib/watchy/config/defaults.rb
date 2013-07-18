@@ -7,5 +7,5 @@ Settings({
     level: :info
   },
 
-  sleep_for: 5
+  sleep_for: 1
 })

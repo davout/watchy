@@ -210,8 +210,8 @@ module Watchy
       logger.debug "Running UPDATE checks for #{name}"
 
       connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
-
         pkey = audit_row.select { |k,v| primary_key.include?(k) }
+        logger.debug "Checking row: #{pkey}"
 
         watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
         watched_row = connection.query(watched_row_query).first
@@ -220,7 +220,6 @@ module Watchy
         # do nothing specific here
         if watched_row
           fields.each do |f|
-            logger.debug "Executing INSERT audit rules for field '#{f.name}'"
             violations = f.on_update(watched_row, audit_row)
             violations.compact.each { |v| record_violation(v[:description], [audit_row, watched_row], v[:rule_name]) }
           end
@@ -241,8 +240,10 @@ module Watchy
       logger.debug "Running INSERT checks for #{name}"
 
       connection.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
+        pkey = audit_row.select { |k,v| primary_key.include?(k) }
+        logger.debug "Checking row: #{pkey}"
+
         fields.each do |f|
-          logger.debug "Executing INSERT audit rules for field '#{f.name}'"
           violations = f.on_insert(audit_row)
           violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name]) }
         end
@@ -282,11 +283,15 @@ module Watchy
     #
     def fields(db = :watched)
       @fields ||= connection.query("DESC #{send(db)}").map do |f|
+        rules = auditor.config[:audit][:tables][name][:fields][f['Field']] && auditor.config[:audit][:tables][name][:fields][f['Field']][:rules]
+        logger.warn 'TODO'
         Watchy::Field.new(
           self,
           f['Field'],
           f['Type'],
           f['Null'],
+          # TODO : Aaarghschnubudulusch
+          rules || { update: [], insert: [] }, 
           f['Key'] == 'PRI',
           f['Default'],
           f['Extra']
