@@ -178,16 +178,35 @@ describe 'Watchy::Table' do
   end
 
   describe '#check_rules_on_update' do
-    it 'should check all rules defined on the row and all rules defined on all fields' do
+    it 'should check all update rules at the row and field levels' do
+      some_field = Object.new
+      some_rule = Object.new
+
       subject.connection.should_receive(:query).and_return([{ 'id' => 1 }])
       subject.should_receive(:primary_key).and_return(['id'])
-      subject.should_receive(:fields).and_return([])
+      subject.should_receive(:fields).and_return([some_field])
+      some_field.should_receive(:on_update).and_return([])
+      subject.should_receive(:rules).and_return({ update: [some_rule]})
+      some_rule.should_receive(:execute)
 
       subject.check_rules_on_update
     end
   end
 
   describe '#check_rules_on_insert' do
+    it 'should check all insert rules at the row and field levels' do
+      some_field = Object.new
+      some_rule = Object.new
+
+      subject.connection.should_receive(:query).and_return([{ 'id' => 1 }])
+      subject.should_receive(:primary_key).and_return(['id'])
+      subject.should_receive(:fields).and_return([some_field])
+      some_field.should_receive(:on_insert).and_return([])
+      subject.should_receive(:rules).and_return({ insert: [some_rule]})
+      some_rule.should_receive(:execute)
+
+      subject.check_rules_on_insert
+    end
   end
 
 end

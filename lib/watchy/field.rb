@@ -1,3 +1,5 @@
+require 'watchy/default_update_rule'
+
 module Watchy
 
   #
@@ -84,10 +86,23 @@ module Watchy
       "#{table.audit}.`#{name}`"
     end
 
+    #
+    # Returns the rules applicable to the passed event (+:insert+ or +:update+)
+    #
+    # @param event [Symbol] The event : +:insert+ or +:update+
+    # @return [Array<Watchy::Rule>] The rules to enforce
+    #
     def rules(event)
       @rules[event]
     end
 
+    #
+    # Executes the rules defined for the UPDATE event
+    #
+    # @param watched_row [Hash] The row copy in the audited schema
+    # @param audit_row [Hash] The row copy in the audit schema
+    # @return [Array<String>] The error messages resulting from executing the defined rules, if any
+    #
     def on_update(watched_row, audit_row)
       rules(:update).inject([]) do |violations, rule|
         v = rule.execute(watched_row, audit_row)
@@ -104,6 +119,12 @@ module Watchy
       end.compact
     end
 
+    #
+    # Executes the rules defined for the INSERT event
+    #
+    # @param audit_row [Hash] The row copy in the audit schema
+    # @return [Array<String>] The error messages resulting from executing the defined rules, if any
+    #
     def on_insert(audit_row)
       rules(:insert).inject([]) do |violations, rule|
         v = rule.execute(audit_row)
@@ -120,6 +141,11 @@ module Watchy
       end.compact
     end
 
+    #
+    # Returns the rules for this field, or the defaults if no configuration was made
+    #
+    # @return [Hash] The hash of rules
+    #
     def read_rules
       fields = table.auditor.config[:audit][:tables][table.name.to_sym][:fields]
       config = fields && fields[name.to_sym]
@@ -129,10 +155,7 @@ module Watchy
       else
         {
           insert: [],
-          update: [
-            Watchy::UpdateRule.new(:should_not_change) do |watched_row, audit_row|
-            end
-          ]
+          update: [ Watchy::DefaultUpdateRule.new(name) ]
         }
       end
     end

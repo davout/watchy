@@ -12,6 +12,9 @@ module Watchy
       super(name, &block)
     end
 
+    #
+    # Calls the +rule_code+ proc
+    #
     def execute(original_row, updated_row)
       rule_code.call(original_row, updated_row)
     end

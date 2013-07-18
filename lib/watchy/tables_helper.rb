@@ -45,6 +45,9 @@ module Watchy
       add_metadata_tables!
     end
 
+    #
+    # Adds the internal state tracking tables on the audit schema
+    #
     def add_metadata_tables!
       metadata_tables_ddl.each do |table, ddl_script|
         if Table.exists?(connection, audit_db, table)
