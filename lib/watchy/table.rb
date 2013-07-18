@@ -205,8 +205,6 @@ module Watchy
     #
     def check_rules_on_update
 
-      # TODO : If has_delta is always checked rows will start accumulating and it'll all slow down
-
       logger.debug "Running UPDATE checks for #{name}"
 
       connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
@@ -283,15 +281,11 @@ module Watchy
     #
     def fields(db = :watched)
       @fields ||= connection.query("DESC #{send(db)}").map do |f|
-        rules = auditor.config[:audit][:tables][name][:fields][f['Field']] && auditor.config[:audit][:tables][name][:fields][f['Field']][:rules]
-        logger.warn 'TODO'
         Watchy::Field.new(
           self,
           f['Field'],
           f['Type'],
           f['Null'],
-          # TODO : Aaarghschnubudulusch
-          rules || { update: [], insert: [] }, 
           f['Key'] == 'PRI',
           f['Default'],
           f['Extra']
