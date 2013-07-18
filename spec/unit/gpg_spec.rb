@@ -19,13 +19,27 @@ describe Watchy::GPG do
   end
 
   describe '#wrap' do
-    it 'should encrypt the supplied text' do
-      subject.should_receive(:encrypt).once.with('sekret').and_return('encrypted')
-      subject.wrap('sekret').should eql('encrypted')
+    context 'no encryption keys are set' do
+      it 'should clearsign the supplied text' do
+        subject.should_receive(:clearsign).once.with('sekret').and_return('clearsigned')
+        subject.wrap('sekret').should eql('clearsigned')
+      end
+    end
+
+    context 'encryption keys are set' do
+      before { subject.encrypt_to = [:fookey] }
+
+      it 'should not clearsign but sign and encrypt the supplied text' do
+        subject.should_receive(:encrypt).once.with('sekret').and_return('encrypted')
+        subject.wrap('sekret').should eql('encrypted')
+      end
     end
 
     context 'when the clearsign option is set' do
-      before { subject.instance_variable_set(:@options, { clearsign: true }) }
+      before do
+        subject.instance_variable_set(:@options, { clearsign: true })
+        subject.encrypt_to = [:fookey]
+      end
 
       it 'should encrypt and clearsign the supplied text' do
         subject.should_receive(:clearsign).once.with('sekret').and_return('clearsigned')
