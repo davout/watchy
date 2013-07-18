@@ -46,7 +46,7 @@ module Watchy
     # Initializes a field given a table, a field name, its type, whether it is nullable,
     # whether it is part of the primary key, its default value and its extra attribues
     #
-    def initialize(table, name, type, rules, nullable = true, key = false, default = nil, extra = nil)
+    def initialize(table, name, type, nullable = true, key = false, default = nil, extra = nil)
       @table    = table
       @name     = name
       @type     = type

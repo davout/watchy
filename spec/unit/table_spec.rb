@@ -22,7 +22,7 @@ describe 'Watchy::Table' do
 
   describe '#primary_key' do
     before do
-      f = [ Watchy::Field.new(subject, 'foo', 'INT', nil, false, true), Watchy::Field.new(subject, 'bar', 'INT', nil) ]
+      f = [ Watchy::Field.new(subject, 'foo', 'INT', false, true), Watchy::Field.new(subject, 'bar', 'INT', nil) ]
       subject.stub(:fields).and_return(f)
     end
 
