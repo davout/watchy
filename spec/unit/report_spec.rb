@@ -13,7 +13,7 @@ describe Watchy::Report do
       end
     end
 
-    TestReport.new(nil, nil, nil)
+    TestReport.new(nil, nil)
   end
 
   describe '#do_render' do

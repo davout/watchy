@@ -59,7 +59,9 @@ module Watchy
     #   an ASCII-armored string
     # 
     def wrap(text)
-      @options[:clearsign] ? encrypt(clearsign(text)) : encrypt(text)
+      should_clearsign = @options[:clearsign] || (@encrypt_to.empty? && @sign_with)
+      clearsigned = should_clearsign ? clearsign(text) : text
+      @encrypt_to.empty? ? clearsigned : encrypt(clearsigned)
     end
 
     #

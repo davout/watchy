@@ -24,10 +24,10 @@ module Watchy
     # @param gpg [Watchy::GPG] The GPG wrapper in charge of report signature and encryption
     # @param template_file [String] The path to the template file
     #
-    def initialize(db, gpg, template_file = nil)
+    def initialize(config, template_file = nil)
       @template_file  = template_file && File.expand_path(template_file)
-      @db             = db
-      @gpg            = gpg
+      @db             = config[:database][:connection]
+      @gpg            = config[:gpg]
     end
 
     #

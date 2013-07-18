@@ -4,6 +4,8 @@ describe Watchy::Config::DSL do
   describe '.get_from' do
     it 'should read the configuration from a block' do
 
+Mysql2::Client.should_receive(:new).and_return(:db_conn)
+
       h = Watchy::Config::DSL.get_from do 
         database do
           username 'albert'
@@ -35,6 +37,11 @@ describe Watchy::Config::DSL do
         end
 
       end
+
+      gpg = h.delete(:gpg)
+      gpg.should be_an_instance_of Watchy::GPG
+
+      h[:database].delete(:connection).should eql(:db_conn)
 
       h.should eql({
         database: {
@@ -76,11 +83,6 @@ describe Watchy::Config::DSL do
             }
           }
         },
-
-        gpg: {
-          sign_with: 'foo',
-          encrypt_to: ['bar']
-        }
 
       })
 

@@ -5,18 +5,14 @@ module Watchy
     # Handles the GPG related configuration hash
     #
     class GPGConfigBuilder
-
-      def initialize
-        @config = { encrypt_to: [] }
-      end
-
+      
       #
       # Defines the GPG key to use for signatures
       #
       # @param k [String] The GPG key identity, usually an e-mail address
       #
       def sign_with(k)
-        @config[:sign_with] = k
+        @sign_with = k
       end
 
       #
@@ -27,7 +23,8 @@ module Watchy
       # @param k [String] A GPG key identity, usually an e-mail address
       #
       def encrypt_to(*k)
-        @config[:encrypt_to] << k
+        @encrypt_to ||= []
+        @encrypt_to << k
       end
 
       #
@@ -36,8 +33,7 @@ module Watchy
       # @return [Hash] The configuration hash
       #
       def build
-        @config[:encrypt_to].flatten!.uniq!
-        { gpg: @config }
+        { gpg:  Watchy::GPG.new(@sign_with, (@encrypt_to || []).flatten) }
       end
 
     end
