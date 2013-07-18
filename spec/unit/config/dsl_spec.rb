@@ -47,7 +47,7 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
         database: {
           username: 'albert',
           password: 'einstein',
-          hostname: 'los-alamos',
+          host: 'los-alamos',
           port: 42,
           schema: 'relativity',
           audit_schema: 'relativity-audit',

@@ -34,7 +34,7 @@ module Watchy
       # @param h [String] The database server hostname
       #
       def hostname(h)
-        @config[:hostname] = h
+        @config[:host] = h
       end
 
       #
