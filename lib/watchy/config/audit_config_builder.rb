@@ -26,7 +26,8 @@ module Watchy
             rules: {
               insert: [],
               update: []
-            }
+            },
+            versioning_enabled: true
           }
         end
       end

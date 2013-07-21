@@ -17,7 +17,8 @@ module Watchy
             insert: [],
             update: []
           },
-          fields: {}
+          fields: {},
+          versioning_enabled: true
         }
       end
 
@@ -44,6 +45,13 @@ module Watchy
       def on_update(*args, &block)
         raise 'Block must accept a two arguments' unless (block.arity == 2)
         @config[:rules][:update] << Watchy::UpdateRule.new(args.shift, &block)
+      end
+
+      #
+      # Disables versioning for the table
+      #
+      def disable_versioning!
+        @config[:versioning_enabled] = false
       end
 
       #

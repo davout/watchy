@@ -16,28 +16,28 @@ module Watchy
       #
       # Adds an UPDATE check for this field
       #
-      # @param name [String] The rule identifier
+      # @param rule_name [String] The rule identifier
       # @param block [Proc] The rule to execute, it should accept the watched row
       #   and the audit row as block params
       #
       # @return [String] A string is returned if the rule fails, it should contain the error description
       #
-      def on_update(name = nil, &block)
+      def on_update(rule_name = nil, &block)
         raise 'Block must accept a two arguments' unless (block.arity == 2)
-        @config[:update] << Watchy::UpdateRule.new(name, &block)
+        @config[:update] << Watchy::UpdateRule.new(rule_name, &block)
       end
 
       #
       # Adds an INSERT check for this field
       #
-      # @param name [String] The rule identifier
+      # @param rule_name [String] The rule identifier
       # @param block [Proc] The rule to execute, it should accept the inserted row as block param
       #
       # @return [String] A string is returned if the rule fails, it should contain the error description
       #
-      def on_insert(name = nil, &block)
+      def on_insert(rule_name = nil, &block)
         raise 'Block must accept a single argument' unless (block.arity == 1)
-        @config[:insert] << Watchy::InsertRule.new(name, &block)
+        @config[:insert] << Watchy::InsertRule.new(rule_name, &block)
       end
 
       #

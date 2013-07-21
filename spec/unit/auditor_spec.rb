@@ -53,6 +53,9 @@ describe Watchy::Auditor do
       subject.stub(:flag_row_deltas)
       subject.stub(:unflag_row_deltas)
       subject.stub(:check_rules)
+      subject.stub(:version_flagged_rows)
+      subject.stub(:version_inserted_rows)
+      subject.stub(:update_audit_tables)
     end
 
     it 'should copy new rows to the audit database' do

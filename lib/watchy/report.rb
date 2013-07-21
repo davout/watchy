@@ -20,8 +20,7 @@ module Watchy
     #
     # Initializes a report
     #
-    # @param db [Mysql2::Client] The connection to issue queries against
-    # @param gpg [Watchy::GPG] The GPG wrapper in charge of report signature and encryption
+    # @param config [Hash] The configuration hash
     # @param template_file [String] The path to the template file
     #
     def initialize(config, template_file = nil)

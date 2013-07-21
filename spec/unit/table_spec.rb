@@ -72,7 +72,11 @@ describe 'Watchy::Table' do
     end
 
     it 'should succeed if the audit table has an extra copied_at field' do
-      subject.connection.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, { 'Field' => '_has_delta'}])
+      subject.connection.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, 
+                                                      { 'Field' => '_has_delta' }, 
+                                                      { 'Field' => '_last_version' }, 
+                                                      { 'Field' => '_has_violation' } ])
+
       subject.logger.should_receive(:info)
       subject.check_for_structure_changes!
     end
@@ -171,9 +175,9 @@ describe 'Watchy::Table' do
 
     it 'should record an audit violation correctly' do
       subject.connection.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
-      subject.connection.should_receive(:query).once
+      subject.connection.should_receive(:query).twice
       subject.connection.should_receive(:escape).twice
-      subject.record_violation('pouet', {}, 'prutendelschnitzeln')
+      subject.record_violation('pouet', {}, 'prutendelschnitzeln', 0)
     end
   end
 

@@ -22,6 +22,7 @@ describe Watchy::TablesHelper do
       existing_table.should_receive(:check_for_structure_changes!).once
       missing_table.should_receive(:exists?).once.and_return(false)
       missing_table.should_receive(:copy_structure).once
+      missing_table.should_receive(:create_versioning_table).once
       subject.should_receive(:add_metadata_tables!).once
 
       Watchy::Table.should_receive(:new).twice.and_return(existing_table, missing_table)
@@ -35,8 +36,8 @@ describe Watchy::TablesHelper do
       subject.stub(:config).and_return({
         audit: {
           tables: {
-            'yoodeloo' => { :rules => :foodelaa },
-            'yoodelaa' => { :rules => :foodeloo }
+            'yoodeloo' => { :rules => :foodelaa, :versioning_enabled => 42 },
+            'yoodelaa' => { :rules => :foodeloo, :versioning_enabled => 69 }
           }
         }
       })
@@ -45,8 +46,8 @@ describe Watchy::TablesHelper do
     end
 
     it 'should instantiate a Watchy::Table object for each configured table' do
-      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodeloo', :foodelaa)
-      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodelaa', :foodeloo)
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodeloo', :foodelaa, 42)
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodelaa', :foodeloo, 69)
 
       subject.tables.should eql([:yoo, :yaa])
     end

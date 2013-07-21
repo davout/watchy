@@ -65,7 +65,8 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
               rules: {
                 update: [],
                 insert: []
-              }
+              },
+              versioning_enabled: true
             },
             bar: {
               fields: {
@@ -79,7 +80,8 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
               rules: {
                 insert: [],
                 update: []
-              }
+              },
+              versioning_enabled: true
             }
           }
         },

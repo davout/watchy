@@ -51,8 +51,11 @@ module Watchy
         loop_start = Time.now
 
         flag_row_deltas
+
         copy_new_rows
+        version_inserted_rows
         # check_deletions
+        # mark deletions in the version history?
 
         check_rules
 
@@ -61,6 +64,8 @@ module Watchy
         run_reports!
 
         stamp_new_rows
+        update_audit_tables
+        version_flagged_rows
         unflag_row_deltas
 
         logger.info("Last loop took #{"%.2f" % (Time.now - loop_start)}s")
@@ -75,6 +80,13 @@ module Watchy
     #
     def copy_new_rows
       tables.each(&:copy_new_rows)
+    end
+
+    #
+    # Adds the inserted rows in the version-tracking table for each table
+    #
+    def version_inserted_rows
+      tables.each(&:version_inserted_rows)
     end
 
     #
@@ -99,6 +111,13 @@ module Watchy
     end
 
     #
+    # Resets the '_has_violation' row flag
+    #
+    def reset_has_violation_flag
+      tables.each(&:reset_has_violation_flag)
+    end
+
+    #
     # Flags the rows that are different in the audited and audit DBs in
     #   order to run the various audit rules against them
     #
@@ -107,11 +126,26 @@ module Watchy
     end
 
     #
+    # Versions rows that have been updated
+    #
+    def version_flagged_rows
+      tables.each(&:version_flagged_rows)
+    end
+
+    #
     # Enforces the constraints defined on the watched tables
     #
     def check_rules
       tables.each(&:check_rules_on_update)
       tables.each(&:check_rules_on_insert)
+    end
+
+    #
+    # Updates the audit schema with the rows that have changed in the 
+    #   watched database
+    #
+    def update_audit_tables
+      tables.each(&:update_audit_table)
     end
 
     #

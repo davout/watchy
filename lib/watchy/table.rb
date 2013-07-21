@@ -11,22 +11,26 @@ module Watchy
     #
     # The field names used internally for auditing
     #
-    METADATA_FIELDS = %w{ _copied_at _has_delta }
+    METADATA_FIELDS = %w{ _copied_at _has_delta _last_version _has_violation }
 
-    attr_accessor :name, :columns, :auditor, :connection, :logger, :rules
+    attr_accessor :name, :columns, :auditor, :connection, :logger, :rules, :versioning_enabled
 
     #
     # Initializes a table given an +auditor+ and a +name+
     #
     # @param auditor [Watchy::Auditor] The current +Watchy::Auditor+ instance
-    # @param name [String] The table name in the audited schema
+    # @param name [String] The table name in the audited schemai
+    # @param rules [Hash] The hash of rules to enforce for this table
+    # @param versioning_enabled [Boolean] Whether to keep an history of all
+    #   INSERTs, UPDATEs, and DELETEs for this table
     #
-    def initialize(auditor, name, rules)
-      @connection = auditor.connection
-      @logger     = auditor.logger
-      @auditor    = auditor
-      @rules      = rules
-      @name       = name
+    def initialize(auditor, name, rules, versioning_enabled = false)
+      @connection         = auditor.connection
+      @logger             = auditor.logger
+      @auditor            = auditor
+      @rules              = rules
+      @name               = name
+      @versioning_enabled = versioning_enabled
     end
 
     #
@@ -57,6 +61,20 @@ module Watchy
       identifier(auditor.audit_db)
     end
 
+    #
+    # Returns the quoted fully qualified name of the versioning table in the audit schema
+    #
+    # @return [String] The fully qualified name as a string 
+    #
+    # == Examples
+    #   
+    #   table.versioning
+    #   => "`audit_db`.`_v_audited_table`"
+    #
+    def versioning
+      identifier(auditor.audit_db, "_v_#{name}")
+    end
+
     # 
     # Creates a quoted fully qualifed table name given a schema name
     #
@@ -68,14 +86,15 @@ module Watchy
     #   table.identifier('foo')
     #   => "`foo`.`table_name`"
     #
-    def identifier(schema)
+    def identifier(schema, name = nil)
+      name ||= @name
       "`#{schema}`.`#{name}`"
     end
 
     #
     # Return an array containing the fields part of the table primary key
     #
-    # @return [Array] The primary key field names
+    # @return [Array<Watchy::Field>] The primary key field names
     #
     # == Examples
     #
@@ -104,6 +123,8 @@ module Watchy
       connection.query("CREATE TABLE #{audit} LIKE #{watched}")
       add_copied_at_field
       add_has_delta_field
+      add_last_version_field
+      add_has_violation_field
     end
 
     # 
@@ -127,19 +148,35 @@ module Watchy
     end
 
     # 
-    # Adds a +copied_at TIMESTAMP NULL+ field to the audit table
+    # Adds a +_copied_at TIMESTAMP NULL+ field to the audit table
     #
     def add_copied_at_field
-      logger.info "Adding #{name}.copied_at audit field..."
+      logger.info "Adding #{name}._copied_at audit field..."
       connection.query("ALTER TABLE #{audit} ADD `_copied_at` TIMESTAMP NULL")
     end
 
     #
-    # Adds a +has_delta TINYINT NOT NULL DEFAULT 0+ field to the audit table
+    # Adds a +_has_delta TINYINT NOT NULL DEFAULT 0+ field to the audit table
     #
     def add_has_delta_field
-      logger.info "Adding #{name}.has_delta audit field..."
+      logger.info "Adding #{name}._has_delta audit field..."
       connection.query("ALTER TABLE #{audit} ADD `_has_delta` TINYINT NOT NULL DEFAULT 0")
+    end
+
+    #
+    # Adds a +_last_version+ BIGINT NULL+ field to the audit table
+    #
+    def add_last_version_field
+      logger.info "Adding #{name}._last_version audit field..."
+      connection.query("ALTER TABLE #{audit} ADD `_last_version` BIGINT NULL") 
+    end
+
+    #
+    # Adds a +_has_violation TINYINT NOT NULL DEFAULT 0+ to the audit table
+    #
+    def add_has_violation_field
+      logger.info "Adding #{name}._has_violation audit field..."
+      connection.query("ALTER TABLE #{audit} ADD `_has_violation` TINYINT NOT NULL DEFAULT 0") 
     end
 
     #
@@ -158,17 +195,41 @@ module Watchy
     def copy_new_rows
       logger.debug "Copying new rows into #{name} ..."
 
-      q = <<-EOF
-        INSERT INTO #{audit}
-          SELECT #{watched}.*, NULL, 0
-          FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition}
-          WHERE #{audit}.`_copied_at` IS NULL
-          EOF
+      q = <<-EOF 
+        INSERT INTO #{audit} 
+          SELECT #{watched}.*, NULL, 0, NULL, 0
+          FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition} 
+          WHERE #{audit}.`_last_version` IS NULL
+      EOF
 
-          connection.query(q)
-          cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
-          logger.info "Copied #{cnt} new rows for table #{name}."
-          cnt
+      connection.query(q)
+      cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
+      logger.info "Copied #{cnt} new rows for table #{name}."
+
+      cnt
+    end
+
+    #
+    # Inserts the initial row in the version-tracking table
+    #
+    def version_inserted_rows
+      if versioning_enabled
+        logger.debug "Inserting initial version for inserted rows in '#{name}'"
+
+        last_version = Time.now.to_i
+
+        q_versioning = <<-EOF
+          INSERT INTO #{versioning} 
+            SELECT #{fields.map(&:audit).join(', ')}, #{last_version} 
+            FROM #{audit} 
+            WHERE #{audit}.`_copied_at` IS NULL
+        EOF
+
+        q_audit_update = "UPDATE #{audit} SET `_last_version`= #{last_version} WHERE `_copied_at` IS NULL"
+
+        connection.query(q_versioning)
+        connection.query(q_audit_update)
+      end
     end
 
     #
@@ -184,8 +245,31 @@ module Watchy
       unless r.count.zero?
         q = "UPDATE #{audit} SET `_has_delta` = 1 WHERE #{condition_from_hashes(r, audit)}"
         connection.query(q) 
-
         logger.warn "Flagged #{r.count} rows for check in #{name}" 
+      end
+    end
+
+    #
+    # Versions the rows that have changed since the last audit loop
+    #
+    def version_flagged_rows
+      if versioning_enabled
+
+        logger.debug "Inserting new row versions for flagged rows"
+
+        last_version = Time.now.to_i
+
+        q_versioning = <<-EOF
+          INSERT INTO #{versioning} 
+            SELECT #{fields.map(&:audit).join(', ')}, #{last_version} 
+            FROM #{audit} 
+            WHERE #{audit}.`_has_delta` = 1
+        EOF
+
+        q_audit_update = "UPDATE #{audit} SET `_last_version` = #{last_version} WHERE `_has_delta` = 1"
+
+        connection.query(q_versioning)
+        connection.query(q_audit_update)
       end
     end
 
@@ -196,6 +280,32 @@ module Watchy
       logger.debug "Resetting row delta flags for #{name}"
       q = "UPDATE #{audit} SET `_has_delta` = 0"
       connection.query(q)
+    end
+
+    #
+    # Updates the audit schema with the changes that happened in the
+    #   watched database, this happens after all rules have been run
+    #   and versions copied.
+    #
+    # If versioning is disabled and a rule violation is detected during
+    #   the audit process the row isn't updated so no information ever
+    #   gets lost.
+    #
+    def update_audit_table
+      logger.info "Updating audit schema with modifications in table '#{name}'"
+
+      unversioned_filter = versioning_enabled ? '1 = 1' : '`_has_violation` = 0' 
+
+      q_rows_to_update = <<-EOS
+        SELECT #{pkey_selection(audit)} 
+        FROM #{audit} 
+        WHERE `_has_delta`= 1 AND #{unversioned_filter} 
+      EOS
+
+      connection.query(q_rows_to_update).each do |row|
+        watched_row = connection.query("SELECT * FROM #{watched} WHERE #{condition_from_hashes(row)}").to_a[0]
+        connection.query("UPDATE #{audit} SET #{assignment_from_hash(watched_row)} WHERE #{condition_from_hashes(row)}")
+      end
     end
 
     #
@@ -219,19 +329,19 @@ module Watchy
         if watched_row
           fields.each do |f|
             violations = f.on_update(watched_row, audit_row)
-            violations.compact.each { |v| record_violation(v[:description], [audit_row, watched_row], v[:rule_name]) }
+            violations.compact.each { |v| record_violation(v[:description], audit_row, v[:rule_name], audit_row['_last_version'], f.name) }
           end
 
           rules[:update].each do |rule|
             v = rule.execute(watched_row, audit_row)
-            record_violation(v, [watched_row, audit_row], rule.name) if v
+            record_violation(v, [watched_row, audit_row], rule.name, audit_row['_last_version']) if v
           end
         end
       end
     end
 
     #
-    # Enforces all the defined rules and constraints on the new rows
+    # Enforces all the defined rules and constraints on the new rows.
     #   Each constraint violation gets logged in order to be reported upon.
     #
     def check_rules_on_insert
@@ -243,35 +353,50 @@ module Watchy
 
         fields.each do |f|
           violations = f.on_insert(audit_row)
-          violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name]) }
+          violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name], audit_row['_last_version'], f.name) }
         end
 
         rules[:insert].each do |rule|
           v = rule.execute(audit_row)
-          record_violation(v, audit_row, rule.name) if v
+          record_violation(v, audit_row, rule.name, audit_row['_last_version']) if v
         end
       end
     end
 
     #
-    # Records rule violations in a dedicated table
+    # Records rule violations in the '_rule_violations' table. A rule violation
+    #   is saved only if there is no other pending record for the same +rule_name+
+    #   value.
     #
-    # @param v [Array<Hash>] The rule violations as returned by a rule execution
+    # @param violation [String] The rule violation description
+    # @param item [Hash] The row as hash
+    # @param rule_name [String] The rule name
+    # @param row_version [Fixnum] The row version for which this violation was detected 
     #
-    def record_violation(v, item, rule_name)
+    def record_violation(violation, item, rule_name, row_version, field = nil)
       stamp = Time.now.to_i
-      serialized = [item].flatten.map { |i| i.inject({}) { |memo, obj| memo[obj[0].to_s] = obj[1].to_s; memo } }.inspect
-      violation = "#{serialized}-#{name}-#{v}"
-      fingerprint = Digest::SHA2.hexdigest(violation)
+
+      serialized = assignment_from_hash(item)
+      pk = item.select { |k,v| primary_key.include?(k.to_s) }
+
+      fingerprint = Digest::SHA2.hexdigest("#{serialized}-#{name}-#{rule_name}-#{field}-#{violation}")
 
       already_exists = connection.query("SELECT COUNT(*) AS CNT FROM `#{auditor.audit_db}`.`_rule_violations` WHERE `fingerprint` = '#{fingerprint}'").to_a[0]['CNT'] > 0
 
       q = <<-EOF
-        INSERT INTO `#{auditor.audit_db}`.`_rule_violations` (`fingerprint`, `audited_table`, `name`, `stamp`, `description`, `item`)
-        VALUES ('#{fingerprint}', '#{name}', '#{rule_name || ''}', #{stamp}, '#{connection.escape(v)}', '#{connection.escape(item.inspect)}')
+        INSERT INTO `#{auditor.audit_db}`.`_rule_violations` (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `pkey`, `row_version`)
+        VALUES ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}', #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.inspect)}', #{row_version})
       EOF
 
       connection.query(q) unless already_exists
+      connection.query("UPDATE #{audit} SET `_has_violation` = 1 WHERE #{condition_from_hashes(pk)}")
+    end
+
+    #
+    # Resets the '_has_violation' flag
+    #
+    def reset_has_violation_flag
+      connection.query("UPDATE #{audit} SET `_has_violation` = 0")
     end
 
     #
@@ -350,6 +475,23 @@ module Watchy
       "(#{cond_or.join(' OR ')})"
     end
 
+    #
+    # Returns the SQL UPDATE fragment assigning the values to the fields passed
+    #   as hash
+    #
+    # @param h [Hash] The keys and values to output as a SQL assignement fragment
+    # @param table [String] The table alias to use for prefixing the identifier, may be omitted
+    # @return [String] The +UPDATE table SET [...]+ fragment
+    #
+    def assignment_from_hash(h, table = nil)
+      prefix = table ? "#{table}." : ""
+      h.map do |k,v|
+        if v && !METADATA_FIELDS.include?(k)
+          "#{prefix}`#{k}` = #{escaped_value(v)}"
+        end
+      end.compact.join(', ')
+    end
+
     # 
     # Escapes +String+ values with simple quotes
     #
@@ -370,6 +512,19 @@ module Watchy
     #
     def self.exists?(connection, schema, table)
       connection.query("SHOW TABLES FROM `#{schema}`").to_a.map { |i| i.to_a.flatten[1] }.include?(table)
+    end
+
+    #
+    # Creates the versioning table in the audit schema
+    #
+    def create_versioning_table
+      logger.info "Creating versioning table '_v_#{name}' in the audit schema"
+      connection.query("CREATE TABLE #{versioning} LIKE #{watched}")
+      connection.query("ALTER TABLE #{versioning} ADD `_row_version` BIGINT NOT NULL DEFAULT 0")
+      connection.query("ALTER TABLE #{versioning} DROP PRIMARY KEY, ADD PRIMARY KEY (#{([primary_key] << '_row_version').flatten.join(',')})")
+      connection.query("SHOW CREATE TABLE #{versioning}").to_a[0]['Create Table'].scan(/UNIQUE KEY `([^`]+)`/).flatten.each do |idx|
+        connection.query("ALTER TABLE #{versioning} DROP INDEX `#{idx}`")
+      end
     end
 
   end
