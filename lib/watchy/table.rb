@@ -379,7 +379,7 @@ module Watchy
       serialized = assignment_from_hash(item)
       pk = item.select { |k,v| primary_key.include?(k.to_s) }
 
-      fingerprint = Digest::SHA2.hexdigest("#{serialized}-#{name}-#{rule_name}-#{field}-#{violation}")
+      fingerprint = Digest::SHA2.hexdigest("#{pk}-#{name}-#{rule_name}-#{field}-#{violation}-#{row_version}")
 
       already_exists = connection.query("SELECT COUNT(*) AS CNT FROM `#{auditor.audit_db}`.`_rule_violations` WHERE `fingerprint` = '#{fingerprint}'").to_a[0]['CNT'] > 0
 
