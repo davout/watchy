@@ -11,7 +11,7 @@ module Watchy
     #
     # The field names used internally for auditing
     #
-    METADATA_FIELDS = %w{ _copied_at _has_delta _last_version _has_violation }
+    METADATA_FIELDS = %w{ _copied_at _has_delta _last_version _has_violation _deleted_at }
 
     attr_accessor :name, :columns, :auditor, :connection, :logger, :rules, :versioning_enabled
 
@@ -125,6 +125,7 @@ module Watchy
       add_has_delta_field
       add_last_version_field
       add_has_violation_field
+      add_deletion_flag
     end
 
     # 
@@ -137,7 +138,7 @@ module Watchy
       delta = watched_fields - audit_fields
       delta = [delta, (audit_fields - watched_fields).reject { |i| METADATA_FIELDS.include?(i['Field']) }].flatten
       metadata_present = METADATA_FIELDS.all? { |f| (audit_fields - watched_fields).map { |i| i['Field'] }.include?(f) }
-
+    
       if !delta.empty?
         raise "Structure has changed for table '#{name}'!"
       elsif !metadata_present
@@ -145,6 +146,14 @@ module Watchy
       else
         logger.info "Audit table #{name} is up to date."
       end
+    end
+
+    # 
+    # Adds a +_deleted_at TIMESTAMP NULL+ field to the audit table
+    #
+    def add_deletion_flag
+      logger.info "Adding #{name}._deleted_at audit field..."
+      connection.query("ALTER TABLE #{audit} ADD `_deleted_at` TIMESTAMP NULL")
     end
 
     # 

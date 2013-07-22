@@ -6,6 +6,11 @@ module Watchy
     #
     class GPGConfigBuilder
       
+      def initialize
+        @verify_sigs_with = []
+      end
+      
+    
       #
       # Defines the GPG key to use for signatures
       #
@@ -28,12 +33,22 @@ module Watchy
       end
 
       #
+      # Defines the public keys against which the signatures of signed data should
+      #   be verified.
+      #
+      # @param keys [Array<String>] Key identifier or array of identifiers
+      #
+      def verify_sigs_with(keys)
+@verify_sigs_with << keys
+      end
+
+      #
       # Builds the defined configuration as a hash
       #
       # @return [Hash] The configuration hash
       #
       def build
-        { gpg:  Watchy::GPG.new(@sign_with, (@encrypt_to || []).flatten) }
+        { gpg:  Watchy::GPG.new(@sign_with, (@encrypt_to || []).flatten, [@verify_sigs_with].flatten) }
       end
 
     end

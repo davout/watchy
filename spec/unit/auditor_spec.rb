@@ -13,7 +13,9 @@ describe Watchy::Auditor do
       database: {
         schema: 'foo',
         audit_schema: 'bar'
-      }
+      },
+
+      queue: Watchy::LocalQueue.new
     })
   end
 
@@ -30,8 +32,6 @@ describe Watchy::Auditor do
   end
 
   describe '.new' do
-    before { stub(Settings).as_null_object }
-
     it 'should bootstrap the databases' do 
       subject.should_receive(:bootstrap_databases!)
     end
@@ -40,7 +40,7 @@ describe Watchy::Auditor do
       subject.should_receive(:bootstrap_audit_tables!).once
     end
 
-    after { subject.send(:initialize, 'tets') }
+    after { subject.send(:initialize, subject.config) }
   end
 
   describe '#run' do

@@ -35,10 +35,11 @@ module Watchy
     # @param sign_with [String] The GPG key ID with which data should be signed
     # @param encrypt_to [Array<String>] The GPG keys IDs to which data should be encrypted
     #
-    def initialize(sign_with, encrypt_to = [], options = {})
-      @options = DEFAULT_OPTIONS.merge(options) 
-      @sign_with  = GPGME::Key.find(:secret, sign_with)
-      @encrypt_to = [encrypt_to].flatten.map { |k| GPGME::Key.find(:public, k) }.flatten
+    def initialize(sign_with, encrypt_to = [], verify_sigs_with = [], options = {})
+      @options          = DEFAULT_OPTIONS.merge(options) 
+      @sign_with        = GPGME::Key.find(:secret, sign_with)
+      @encrypt_to       = [encrypt_to].flatten.map { |k| GPGME::Key.find(:public, k) }.flatten
+      @verify_sigs_with = [verify_sigs_with].flatten.map { |k| GPGME::Key.find(:public, k) }.flatten 
     end
 
     #
@@ -63,6 +64,45 @@ module Watchy
       clearsigned = should_clearsign ? clearsign(text) : text
       @encrypt_to.empty? ? clearsigned : encrypt(clearsigned)
     end
+
+    #
+    # Decrypts the signed text and verifies its signature, returns +nil+ unless
+    #   the signature correctly verifies against a public key present in +verify_sigs_with+
+    #
+    # @param [String] Encrypted signed data
+    # @return [String] The encrypted data if there is at least one valid signature made
+    #   by a configured key
+    #
+    def unwrap(data)
+      @encryptor.decrypt(data) if valid_signature?(data)
+    end
+
+    #
+    # Checks the validity of the data signature
+    #
+    # @return [Bool] +true+ if the data is signed with one of the configured keys
+    #
+    def valid_signature?(data)
+      unless @verify_sigs_with.empty?
+        correct_sig = false
+
+        @encryptor.verify(data) do |sig| 
+          correct_sig = @verify_sigs_with.map(&:fingerprint).include?(sig.key.fingerprint)
+        end
+
+        correct_sig
+      end
+    end
+
+    #
+    # Returns +true+ if there is at least one encryption key configured
+    # 
+    # @return [Boolean] Whether this encryptor is able to encrypt data
+    #
+    def can_encrypt?
+      ![encrypt_to].flatten.empty?
+    end
+
 
     #
     # Clearsigns the given text with the auditor's GPG key

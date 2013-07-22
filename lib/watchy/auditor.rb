@@ -18,11 +18,13 @@ module Watchy
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
 
-    attr_accessor :config, :watched_db, :audit_db, :interrupted, :reports
+    attr_accessor :config, :watched_db, :audit_db, :interrupted, :reports, :queue
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
     # Bootstraps the audit database if necessary.
+    #
+    # @param configuration [Hash] The configuration hash
     #
     def initialize(configuration)
       self.config = configuration
@@ -32,6 +34,9 @@ module Watchy
       @watched_db ||= config[:database][:schema]
       @audit_db   ||= config[:database][:audit_schema]
       @reports    ||= [config[:reports]].flatten.compact
+      @queue      ||= config[:queue]
+
+      @queue.gpg = config[:gpg] if (@queue && config[:gpg])
 
       bootstrap_databases!
       bootstrap_audit_tables!
@@ -51,17 +56,13 @@ module Watchy
         loop_start = Time.now
 
         flag_row_deltas
-
         copy_new_rows
-        # check_deletions
-        # mark deletions in the version history?
-
+        check_deletions
         check_rules
 
         # dispatch_alerts(reporting)
         # trigger_scheduled_tasks
         run_reports!
-
         stamp_new_rows
         update_audit_tables
         version_flagged_rows
@@ -115,6 +116,13 @@ module Watchy
     #
     def version_flagged_rows
       tables.each(&:version_flagged_rows)
+    end
+
+    #
+    # Checks whether deletions happened in the watched schema
+    #
+    def check_deletions
+      tables.each(&:check_deletions)
     end
 
     #

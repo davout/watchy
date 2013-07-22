@@ -58,6 +58,16 @@ module Watchy
       end
 
       #
+      # Defines the queue class to use
+      #
+      # @param q [Watchy::Queue] An instance of a class extending +Watchy::Queue+
+      #
+      def queue(q)
+        @config << { queue: q }
+      end
+
+
+      #
       # Returns the full configuration hash
       #
       # @return [Hash] The configuration hash
