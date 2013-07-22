@@ -32,7 +32,7 @@ Watchy.configure do
     # The database that watchy will use to store its copy of the audited data
     audit_schema  'bpp-audit'
 
- # Whether to restart each run with an empty audit DB
+    # Whether to restart each run with an empty audit DB
     drop_audit_schema!
   end
 
