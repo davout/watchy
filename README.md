@@ -93,7 +93,14 @@ Watchy can be configured to generate and publish signed reports on the audited d
 ## TODO
 
  * DELETEs
- * Reporting
+ * Reporting should be plannable, how do we broadcast them ?
+ * Reporting should be pluggable
+ * BTC reports
+ * Accounting reports
+ * Violations report
+ * Violation signoff
+ * Amazon SQS ? (+ web interface?)
+ * Run arbitrary code on the auditor (with special key per auditor?)
 
 ## Requirements
 
