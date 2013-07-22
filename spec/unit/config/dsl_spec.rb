@@ -7,6 +7,9 @@ describe Watchy::Config::DSL do
 Mysql2::Client.should_receive(:new).and_return(:db_conn)
 
       h = Watchy::Config::DSL.get_from do 
+
+        sleep_for 42
+
         database do
           username 'albert'
           password 'einstein'
@@ -28,6 +31,8 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
           table :bar do
             field :baz do
             end
+
+            disable_versioning!
           end
         end
 
@@ -44,6 +49,9 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
       h[:database].delete(:connection).should eql(:db_conn)
 
       h.should eql({
+
+        sleep_for: 42,
+
         database: {
           username: 'albert',
           password: 'einstein',
@@ -81,7 +89,7 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
                 insert: [],
                 update: []
               },
-              versioning_enabled: true
+              versioning_enabled: false
             }
           }
         },

@@ -20,6 +20,14 @@ describe 'Watchy::Table' do
     end
   end
 
+  describe '#versioning' do
+    it 'should return the fully qualified versioning table name' do
+      subject.auditor.should_receive(:audit_db).once.and_return('bar')
+      subject.should_receive(:identifier).once.with('bar', '_v_baz').and_call_original
+      subject.versioning.should eq('`bar`.`_v_baz`')
+    end
+  end
+
   describe '#primary_key' do
     before do
       f = [ Watchy::Field.new(subject, 'foo', 'INT', false, true), Watchy::Field.new(subject, 'bar', 'INT', nil) ]
@@ -176,7 +184,7 @@ describe 'Watchy::Table' do
     it 'should record an audit violation correctly' do
       subject.connection.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
       subject.connection.should_receive(:query).twice
-      subject.connection.should_receive(:escape).twice
+      subject.connection.should_receive(:escape).exactly(3).times
       subject.record_violation('pouet', {}, 'prutendelschnitzeln', 0)
     end
   end
@@ -213,4 +221,58 @@ describe 'Watchy::Table' do
     end
   end
 
+  describe '#create_versioning_table' do
+    before do
+      subject.primary_key
+      subject.stub(:versioning).and_return('baz')
+    end 
+
+    it 'should create the versioning table, update the PK and remove unique indexes from it' do
+      c = subject.connection
+      c.should_receive(:query).once.ordered
+      c.should_receive(:query).once.ordered
+      c.should_receive(:query).once.ordered
+      c.should_receive(:query).once.ordered.and_return([{ 'Table' => 'foo', 'Create Table' => 'UNIQUE KEY `foo`, UNIQUE KEY `bar`'}])
+      c.should_receive(:query).once.ordered.with('ALTER TABLE baz DROP INDEX `foo`')
+      c.should_receive(:query).once.ordered.with('ALTER TABLE baz DROP INDEX `bar`')
+      subject.create_versioning_table
+    end
+  end
+
+  describe '#assignment_from_hash' do
+    it 'should create an assignment string' do
+      subject.assignment_from_hash({ 'id' => 42, name: 'Foo' }, 'fooTable').
+        should eql("fooTable.`id` = 42, fooTable.`name` = 'Foo'") 
+    end
+  end
+
+  context 'when working with versioning' do
+    before do
+      subject.stub(:versioning_enabled).and_return(true) 
+      subject.stub(:fields).and_return([])
+    end
+
+    describe '#version_inserted_rows' do
+      it 'should copy a row version to the versioning table' do
+        subject.connection.should_receive(:query).twice
+        subject.version_inserted_rows
+      end
+    end
+
+    describe '#version_flagged_rows' do
+      it 'should copy a version for the flagged rows' do
+        subject.connection.should_receive(:query).twice
+        subject.version_flagged_rows
+      end
+    end
+  end
+
+  describe '#update_audit_table' do
+    it 'should copy the watched DB modifications to the audit DB if possible' do
+      subject.stub(:pkey_selection)
+      subject.connection.should_receive(:query).once.ordered.and_return([[]])
+      subject.connection.should_receive(:query).twice.ordered
+      subject.update_audit_table
+    end
+  end
 end

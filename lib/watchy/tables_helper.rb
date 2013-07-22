@@ -17,12 +17,13 @@ module Watchy
             `id` INT NOT NULL AUTO_INCREMENT,
             `fingerprint` VARCHAR(64) NOT NULL,
             `audited_table` VARCHAR(255) NOT NULL,
-            `field` VARCHAR(255) NOT NULL,
-            `name` VARCHAR(255) NULL,
+            `field` VARCHAR(255) NULL,
+            `name` VARCHAR(255) NOT NULL,
             `stamp` BIGINT NOT NULL,
             `description` VARCHAR(255) NOT NULL,
             `pkey` TEXT NULL,
             `row_version` BIGINT NOT NULL,
+            `state` VARCHAR(10) NOT NULL DEFAULT 'pending',
             PRIMARY KEY (`id`),
             UNIQUE INDEX `fingerprint_UNIQUE` (`fingerprint` ASC) )
         EOS
@@ -55,9 +56,9 @@ module Watchy
     def add_metadata_tables!
       metadata_tables_ddl.each do |table, ddl_script|
         if Table.exists?(connection, audit_db, table)
-          logger.info "Table #{table} already exists."
+          logger.info "Table '#{table}' already exists."
         else
-          logger.info "Creating table #{table} on the audit database"
+          logger.info "Creating table '#{table}' on the audit database"
           connection.query(ddl_script)
         end
       end

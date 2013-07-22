@@ -21,6 +21,15 @@ module Watchy
       end
 
       #
+      # Sets the interval to sleep for, defaults to 1s
+      #
+      # @param s [Fixnum] The number of seconds to sleep between each audit loop
+      #
+      def sleep_for(s)
+        @config << { sleep_for: s }
+      end
+
+      #
       # Sets the configuration for the audited database connection
       #
       def database(&block)

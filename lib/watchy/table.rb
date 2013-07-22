@@ -206,6 +206,8 @@ module Watchy
       cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
       logger.info "Copied #{cnt} new rows for table #{name}."
 
+      version_inserted_rows if cnt > 0
+
       cnt
     end
 
@@ -214,7 +216,7 @@ module Watchy
     #
     def version_inserted_rows
       if versioning_enabled
-        logger.debug "Inserting initial version for inserted rows in '#{name}'"
+        logger.warn "Inserting initial version for inserted rows in '#{name}'"
 
         last_version = Time.now.to_i
 
@@ -381,22 +383,35 @@ module Watchy
 
       fingerprint = Digest::SHA2.hexdigest("#{pk}-#{name}-#{rule_name}-#{field}-#{violation}-#{row_version}")
 
-      already_exists = connection.query("SELECT COUNT(*) AS CNT FROM `#{auditor.audit_db}`.`_rule_violations` WHERE `fingerprint` = '#{fingerprint}'").to_a[0]['CNT'] > 0
+      field_condition = field ? "`field` = '#{field}'" : "1 = 1" 
+
+      q_already_exists = <<-EOS
+        SELECT COUNT(*) AS CNT 
+        FROM `#{auditor.audit_db}`.`_rule_violations` 
+        WHERE  
+          #{field_condition} AND
+          `pkey` = '#{connection.escape(pk.to_s)}' AND 
+          `audited_table` = '#{name}' AND
+          `state` = 'pending' AND
+          `name` = '#{rule_name}'
+      EOS
+
+      already_exists = connection.query(q_already_exists).to_a[0]['CNT'] > 0
 
       q = <<-EOF
-        INSERT INTO `#{auditor.audit_db}`.`_rule_violations` (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `pkey`, `row_version`)
-        VALUES ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}', #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.inspect)}', #{row_version})
+        INSERT INTO `#{auditor.audit_db}`.`_rule_violations` 
+          (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `pkey`, `row_version`)
+        VALUES 
+          ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}',
+          #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.to_s)}', #{row_version})
       EOF
 
-      connection.query(q) unless already_exists
-      connection.query("UPDATE #{audit} SET `_has_violation` = 1 WHERE #{condition_from_hashes(pk)}")
-    end
+      if !already_exists
+        logger.error "Recording violation [#{fingerprint[0..16]}] for '#{rule_name}' ('#{name}'.'#{field}') at #{stamp}"
+        connection.query(q)
+      end
 
-    #
-    # Resets the '_has_violation' flag
-    #
-    def reset_has_violation_flag
-      connection.query("UPDATE #{audit} SET `_has_violation` = 0")
+      connection.query("UPDATE #{audit} SET `_has_violation` = 1 WHERE #{condition_from_hashes(pk)}")
     end
 
     #
@@ -424,10 +439,7 @@ module Watchy
     # @return [String] A +WHERE+ clause fragment matching when rows have differences
     #
     def differences_filter
-      conditions = fields.map do |field|
-        "(#{field.difference_filter})"
-      end
-
+      conditions = fields.map { |field| "(#{field.difference_filter})" }
       "(#{conditions.join(' OR ')})"
     end
 
@@ -522,6 +534,7 @@ module Watchy
       connection.query("CREATE TABLE #{versioning} LIKE #{watched}")
       connection.query("ALTER TABLE #{versioning} ADD `_row_version` BIGINT NOT NULL DEFAULT 0")
       connection.query("ALTER TABLE #{versioning} DROP PRIMARY KEY, ADD PRIMARY KEY (#{([primary_key] << '_row_version').flatten.join(',')})")
+
       connection.query("SHOW CREATE TABLE #{versioning}").to_a[0]['Create Table'].scan(/UNIQUE KEY `([^`]+)`/).flatten.each do |idx|
         connection.query("ALTER TABLE #{versioning} DROP INDEX `#{idx}`")
       end

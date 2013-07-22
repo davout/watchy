@@ -106,6 +106,20 @@ describe Watchy::Auditor do
       end
     end
 
+    describe '#update_audit_table' do
+      it 'should call Table#update_audit_table for each audited table' do
+        subject.tables.each { |t| t.should_receive(:update_audit_table).once }
+        subject.update_audit_tables
+      end
+    end
+
+    describe '#version_flagged_rows' do
+      it 'should call Table#version_flagged_rows for each audited table' do
+        subject.tables.each { |t| t.should_receive(:version_flagged_rows).once }
+        subject.version_flagged_rows
+      end
+    end
+
     describe '#check_rules' do
       it 'should call Table#check_rules for each audited table' do
         subject.tables.each { |t| t.should_receive(:check_rules_on_update).once }

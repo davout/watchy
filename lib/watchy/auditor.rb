@@ -53,7 +53,6 @@ module Watchy
         flag_row_deltas
 
         copy_new_rows
-        version_inserted_rows
         # check_deletions
         # mark deletions in the version history?
 
@@ -83,13 +82,6 @@ module Watchy
     end
 
     #
-    # Adds the inserted rows in the version-tracking table for each table
-    #
-    def version_inserted_rows
-      tables.each(&:version_inserted_rows)
-    end
-
-    #
     # Timestamps the new rows in the audit database at the end of the audit cycle
     #
     def stamp_new_rows
@@ -108,13 +100,6 @@ module Watchy
     #
     def unflag_row_deltas
       tables.each(&:unflag_row_deltas)
-    end
-
-    #
-    # Resets the '_has_violation' row flag
-    #
-    def reset_has_violation_flag
-      tables.each(&:reset_has_violation_flag)
     end
 
     #
