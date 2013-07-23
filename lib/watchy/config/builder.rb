@@ -4,6 +4,7 @@ require 'watchy/config/db_config_builder'
 require 'watchy/config/gpg_config_builder'
 require 'watchy/config/audit_config_builder'
 require 'watchy/config/logger_config_builder'
+require 'watchy/config/reporting_config_builder'
 
 module Watchy
   module Config
@@ -58,14 +59,27 @@ module Watchy
       end
 
       #
-      # Defines the queue class to use
+      # Defines the reporting to be performed
+      #
+      def reporting(&block)
+        @config << Docile.dsl_eval(ReportingConfigBuilder.new, &block).build
+      end
+
+      #
+      # Defines the queue to use for receiving messages
+      #
+      def receive_queue(q)
+        @config << { receive_queue: q }
+      end
+
+      #
+      # Defines the queue to use for broadcasting messages
       #
       # @param q [Watchy::Queue] An instance of a class extending +Watchy::Queue+
       #
-      def queue(q)
-        @config << { queue: q }
+      def broadcast_queue(q)
+        @config << { broadcast_queue: q }
       end
-
 
       #
       # Returns the full configuration hash

@@ -1,4 +1,5 @@
 require 'watchy/config/table_config_builder'
+require 'watchy/default_delete_rule'
 
 module Watchy
   module Config
@@ -25,10 +26,15 @@ module Watchy
           @config[:tables][name] = {
             rules: {
               insert: [],
-              update: []
+              update: [],
+              delete: [ Watchy::DefaultDeleteRule.new ]
             },
             versioning_enabled: true
           }
+        end
+
+        if @config[:tables][name][:rules][:delete].empty?
+          @config[:tables][name][:rules][:delete] << Watchy::DefaultDeleteRule.new
         end
       end
 

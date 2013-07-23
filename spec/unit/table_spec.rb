@@ -83,15 +83,16 @@ describe 'Watchy::Table' do
       subject.connection.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, 
                                                       { 'Field' => '_has_delta' }, 
                                                       { 'Field' => '_last_version' }, 
-                                                      { 'Field' => '_has_violation' } ])
+                                                      { 'Field' => '_has_violation' },
+                                                      { 'Field' => '_deleted_at' } ])
 
       subject.logger.should_receive(:info)
       subject.check_for_structure_changes!
     end
 
-    it 'should fail when the copied_at field is not present in the audit table' do
+    it 'should fail when the metadata fields are not present in the audit table' do
       subject.connection.stub(:query).and_return([], [])
-      expect { subject.check_for_structure_changes! }.to raise_error("Missing meta-data fields in audit table 'baz'!")
+      expect { subject.check_for_structure_changes! }.to raise_error
     end
   end
 
@@ -218,6 +219,25 @@ describe 'Watchy::Table' do
       some_rule.should_receive(:execute)
 
       subject.check_rules_on_insert
+    end
+  end
+
+  describe '#check_deletions' do
+    before do
+      subject.stub(:condition_from_hashes)
+      Watchy::Table.any_instance.stub(:primary_key).and_return(['id'])
+      @rule = Object.new
+      @rule.stub(:name)
+    end
+
+    it 'should check for deletions' do
+      subject.connection.should_receive(:query).once.ordered.and_return([:foo])
+      subject.connection.should_receive(:query).once.ordered
+      subject.should_receive(:rules).and_return({delete: [@rule]})
+      @rule.should_receive(:execute).and_return(:foo)
+      subject.should_receive(:record_violation)
+      subject.connection.should_receive(:query).once.ordered
+      subject.check_deletions
     end
   end
 

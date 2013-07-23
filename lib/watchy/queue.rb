@@ -1,3 +1,5 @@
+require 'watchy/logger_helper'
+
 module Watchy
 
   #
@@ -9,6 +11,8 @@ module Watchy
   #   backend, it may be FIFO, LIFO or random.
   #
   class Queue
+
+    include Watchy::LoggerHelper
 
     # The GPG encryptor
     attr_accessor :gpg
@@ -48,7 +52,7 @@ module Watchy
     # @return [String] The message if decryption and signature verification succeeded
     #
     def unwrap(raw)
-      gpg.unwrap(raw)
+      gpg.unwrap(raw) || logger.error("Unable to verify signature on message!\nMessage was:\n#{raw}")
     end
 
   end

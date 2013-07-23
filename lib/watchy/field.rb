@@ -149,15 +149,13 @@ module Watchy
     def read_rules
       fields = table.auditor.config[:audit][:tables][table.name.to_sym][:fields]
       config = fields && fields[name.to_sym]
+      config = config ? config[:rules] : { insert: [], update: [] }
 
-      if config
-        config[:rules]
-      else
-        {
-          insert: [],
-          update: [ Watchy::DefaultUpdateRule.new(name) ]
-        }
+      if config[:update].empty?  
+        config[:update] << Watchy::DefaultUpdateRule.new(name)
       end
+
+      config
     end
   end
 end

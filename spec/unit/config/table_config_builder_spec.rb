@@ -14,5 +14,12 @@ describe Watchy::Config::TableConfigBuilder do
       subject.on_insert { |a| }
     end
   end
+
+  describe '#on_delete' do
+    it 'should add a delete rule' do 
+      Watchy::DeleteRule.should_receive(:new)
+      subject.on_delete { |a| }
+    end
+  end
 end
 

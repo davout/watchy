@@ -15,7 +15,7 @@ describe Watchy::Auditor do
         audit_schema: 'bar'
       },
 
-      queue: Watchy::LocalQueue.new
+      gpg: :foo
     })
   end
 
@@ -56,6 +56,8 @@ describe Watchy::Auditor do
       subject.stub(:version_flagged_rows)
       subject.stub(:version_inserted_rows)
       subject.stub(:update_audit_tables)
+      subject.stub(:check_deletions)
+      subject.stub(:receive_and_handle_messages)
     end
 
     it 'should copy new rows to the audit database' do
@@ -106,6 +108,13 @@ describe Watchy::Auditor do
       end
     end
 
+    describe '#check_deletions' do
+      it 'should call Table#check_deletions for each audited table' do
+        subject.tables.each { |t| t.should_receive(:check_deletions).once }
+        subject.check_deletions
+      end
+    end
+
     describe '#update_audit_table' do
       it 'should call Table#update_audit_table for each audited table' do
         subject.tables.each { |t| t.should_receive(:update_audit_table).once }
@@ -130,13 +139,37 @@ describe Watchy::Auditor do
   end
 
   describe 'when working with reports' do
-    before { subject.reports = [Object] }
+    before do
+      @due_report   = Object.new
+      @undue_report = Object.new
+
+      @due_report.stub(:due?).and_return(true)
+      @undue_report.stub(:due?).and_return(false)
+
+      subject.stub(:reports).and_return([@due_report, @undue_report])
+      @due_report.stub(:config).and_return("I'm fine thank you")
+    end
 
     describe '#run_reports!' do
-      it 'should call Report#run for each configured report' do
-        subject.reports.each { |t| t.should_receive(:run).once }
+      it 'should call Report#broadcast! for each configured and due report' do
+        subject.reports.each { |t| t.should_receive(:due?).once }
+        @due_report.should_receive(:broadcast!).once
+        @undue_report.should_not_receive(:broadcast!)
         subject.run_reports!
       end
+    end
+  end
+
+  describe 'receive_and_handle_messages' do
+    before do
+      @rq = Object.new
+      subject.instance_variable_set(:@receive_queue, @rq)
+    end
+
+    it 'should handle a received message' do
+      @rq.should_receive(:pop).exactly(2).times.and_return(:foo, nil)
+      Watchy::Message.should_receive(:handle).once.with(:foo)
+      subject.receive_and_handle_messages
     end
   end
 end

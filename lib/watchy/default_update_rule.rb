@@ -1,8 +1,8 @@
 module Watchy
 
   #
-  # This rule is enforced by default on all fields, it enforces that no
-  #   UPDATE is ever made on them.
+  # This rule is enforced by default on all fields, it enforces that
+  #   no UPDATE is ever made on them.
   #
   class DefaultUpdateRule < Watchy::UpdateRule
     def initialize(field)

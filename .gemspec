@@ -26,6 +26,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'mustache'
   s.add_dependency 'gpgme'
   s.add_dependency 'docile'
+  s.add_dependency 'aws-sdk'
+  s.add_dependency 'parse-cron'
 
   s.files        = Dir.glob('{bin,lib}/**/*') + %w(LICENSE README.md)
   s.executables  = ['watchy']

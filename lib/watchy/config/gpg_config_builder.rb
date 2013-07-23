@@ -39,7 +39,7 @@ module Watchy
       # @param keys [Array<String>] Key identifier or array of identifiers
       #
       def verify_sigs_with(keys)
-@verify_sigs_with << keys
+        @verify_sigs_with << keys
       end
 
       #

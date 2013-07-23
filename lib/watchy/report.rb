@@ -1,4 +1,5 @@
 require 'mustache'
+require 'parse-cron'
 
 module Watchy
 
@@ -7,45 +8,76 @@ module Watchy
   #
   class Report < Mustache
 
-    # 
-    # The GPG encryptor used to sign and encrypt the generated report
     #
-    attr_accessor :gpg
-
+    # The settings defined globally
     #
-    # The database connection against which the report should run
-    #
-    attr_accessor :db
+    attr_accessor :config
 
     #
     # Initializes a report
     #
-    # @param config [Hash] The configuration hash
-    # @param template_file [String] The path to the template file
+    # @param cron_def [String] The crontab style definition of the run
+    #   times for this report
     #
-    def initialize(config, template_file = nil)
-      @template_file  = template_file && File.expand_path(template_file)
-      @db             = config[:database][:connection]
-      @gpg            = config[:gpg]
+    def initialize(cron_def = nil)
+      @cron_def = cron_def
+      @next_run = cron_parser && cron_parser.next(Time.now)
     end
 
     #
     # Generates the report
     # 
-    # @return [String] The generated report, signed and encrypted
+    # @return [String] The generated report
     #
     def generate
-      gpg.wrap(do_render)
+      report = do_render
+      @next_run = cron_parser && cron_parser.next(Time.now)
+      report
     end
 
     # 
-    # Renders the template using the +template+ instance method od
-    #   the +@template_file+ file in this order.
+    # Renders the template using the +template+ instance method
+    #   which should return the path to the template
     #
     # @return [String] The generated report
     #
     def do_render
-      respond_to?(:template) ? render(template) : render
+      render(template)
     end
+
+    #
+    # Indicates whether this report is currently due
+    #
+    # @return [Boolean] Whether this report should be run
+    #
+    def due?
+      cron_parser && (@next_run < Time.now)
+    end
+
+    #
+    # The database connection against which the report should run
+    #
+    def db
+      config && 
+        config[:database] && 
+        config[:database][:connection]
+    end
+
+    #
+    # Returns the +CronParser+ instance responsible for scheduling this report
+    #
+    # @return [CronParser] The configured cron definition
+    #
+    def cron_parser
+      @cron_parser ||= (@cron_def && CronParser.new(@cron_def))
+    end
+    
+    #
+    # Pushes a report on the reporting queue
+    #
+    def broadcast!
+      config[:broadcast_queue].push(generate)
+    end
+
   end
 end

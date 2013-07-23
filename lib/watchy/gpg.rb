@@ -74,7 +74,7 @@ module Watchy
     #   by a configured key
     #
     def unwrap(data)
-      @encryptor.decrypt(data) if valid_signature?(data)
+      encryptor.decrypt(data) if valid_signature?(data)
     end
 
     #
@@ -83,15 +83,13 @@ module Watchy
     # @return [Bool] +true+ if the data is signed with one of the configured keys
     #
     def valid_signature?(data)
+      ok_sig = false
+
       unless @verify_sigs_with.empty?
-        correct_sig = false
-
-        @encryptor.verify(data) do |sig| 
-          correct_sig = @verify_sigs_with.map(&:fingerprint).include?(sig.key.fingerprint)
-        end
-
-        correct_sig
+        encryptor.verify(data) { |sig| ok_sig = @verify_sigs_with.map(&:fingerprint).include?(sig.key.fingerprint) }
       end
+
+      ok_sig
     end
 
     #
@@ -100,9 +98,8 @@ module Watchy
     # @return [Boolean] Whether this encryptor is able to encrypt data
     #
     def can_encrypt?
-      ![encrypt_to].flatten.empty?
+      ![encrypt_to].flatten.compact.empty?
     end
-
 
     #
     # Clearsigns the given text with the auditor's GPG key

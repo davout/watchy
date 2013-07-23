@@ -5,6 +5,7 @@ require 'watchy/logger_helper'
 require 'watchy/table'
 require 'watchy/report'
 require 'watchy/gpg'
+require 'watchy/message'
 
 module Watchy
 
@@ -18,7 +19,7 @@ module Watchy
     include Watchy::DatabaseHelper
     include Watchy::LoggerHelper
 
-    attr_accessor :config, :watched_db, :audit_db, :interrupted, :reports, :queue
+    attr_accessor :config, :watched_db, :audit_db, :interrupted
 
     #
     # Initializes an +Auditor+ instance given the current configuration.
@@ -31,12 +32,16 @@ module Watchy
 
       logger.info "Booting Watchy #{Watchy::VERSION}"
 
-      @watched_db ||= config[:database][:schema]
-      @audit_db   ||= config[:database][:audit_schema]
-      @reports    ||= [config[:reports]].flatten.compact
-      @queue      ||= config[:queue]
+      @watched_db       ||= config[:database][:schema]
+      @audit_db         ||= config[:database][:audit_schema]
+      @reports          ||= config[:reports]
+      @receive_queue    ||= config[:receive_queue]
+      @broadcast_queue  ||= config[:broadcast_queue]
 
-      @queue.gpg = config[:gpg] if (@queue && config[:gpg])
+      if config[:gpg]
+        @receive_queue.gpg    = config[:gpg] if @receive_queue
+        @broadcast_queue.gpg  = config[:gpg] if @broadcast_queue
+      end
 
       bootstrap_databases!
       bootstrap_audit_tables!
@@ -68,6 +73,8 @@ module Watchy
         version_flagged_rows
         unflag_row_deltas
 
+        receive_and_handle_messages
+
         logger.info("Last loop took #{"%.2f" % (Time.now - loop_start)}s")
 
         logger.debug("Sleeping for #{config[:sleep_for]}s before next run ...")
@@ -93,7 +100,10 @@ module Watchy
     # Runs the configured reports if necessary
     #
     def run_reports!
-      reports.map(&:run).compact
+      reports.select(&:due?).each do |r|
+        r.config ||= config
+        r.broadcast!
+      end
     end
 
     #
@@ -139,6 +149,24 @@ module Watchy
     #
     def update_audit_tables
       tables.each(&:update_audit_table)
+    end
+
+    #
+    # Receives as much messages as are present in the queue and calls
+    #   their appropriate message handler
+    #
+    def receive_and_handle_messages(max_count = 10)
+      logger.debug("Receiving messages from queue (max: #{max_count})")
+
+      msg_count = 0
+      msg = nil
+      
+      while (msg = @receive_queue.pop) && (msg_count <= max_count)
+        Watchy::Message.handle(msg)
+        msg_count += 1
+      end
+
+      logger.info("Received #{msg_count} messages")
     end
 
     #

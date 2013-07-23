@@ -18,6 +18,44 @@ describe Watchy::GPG do
     end
   end
 
+  describe '#can_encrypt?' do
+    it 'should return true if encryption keys are present' do
+      subject.should_receive(:encrypt_to).once.and_return(:foo)
+      subject.can_encrypt?.should be_true
+    end
+
+    it 'should return false if no encryption keys are present' do
+      subject.should_receive(:encrypt_to).once.and_return(nil)
+      subject.can_encrypt?.should be_false
+    end
+  end
+
+  describe '#unwrap' do
+    before do
+      @encryptor = Object.new
+      subject.stub(:encryptor).and_return(@encryptor)
+    end
+
+    it 'should decrypt the contents after verifying the signature' do
+      subject.should_receive(:valid_signature?).once.with(:foo).and_return(true)
+      subject.encryptor.should_receive(:decrypt).once.with(:foo).and_return(:bar)
+      subject.unwrap(:foo).should eql(:bar)
+    end
+  end
+
+  describe '#verify_signature' do
+    before do
+      @encryptor = Object.new
+      subject.stub(:encryptor).and_return(@encryptor)
+      subject.instance_variable_set(:@verify_sigs_with, [:foo])
+    end
+
+    it 'should verify the signature of the given data' do
+      @encryptor.should_receive(:verify).with(:foodeloo)
+      subject.valid_signature?(:foodeloo)
+    end
+  end
+
   describe '#wrap' do
     context 'no encryption keys are set' do
       it 'should clearsign the supplied text' do
@@ -49,8 +87,7 @@ describe Watchy::GPG do
     end
   end
 
-  context 'when working with an ecnryptor' do
-
+  context 'when working with an encryptor' do
     before do 
       @encryptor = mock(Object)
       subject.stub(:encryptor).and_return(@encryptor)

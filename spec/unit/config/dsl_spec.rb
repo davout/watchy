@@ -39,7 +39,14 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
         gpg do
           sign_with 'foo'
           encrypt_to 'bar'
+          verify_sigs_with 'boo'
         end
+
+        reporting do
+        end
+
+        receive_queue :foo
+        broadcast_queue :bar
 
       end
 
@@ -47,6 +54,12 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
       gpg.should be_an_instance_of Watchy::GPG
 
       h[:database].delete(:connection).should eql(:db_conn)
+
+      h[:audit][:tables][:foo][:rules][:delete].delete_at(0).
+        should be_an_instance_of Watchy::DefaultDeleteRule
+
+      h[:audit][:tables][:bar][:rules][:delete].delete_at(0).
+        should be_an_instance_of Watchy::DefaultDeleteRule
 
       h.should eql({
 
@@ -72,7 +85,8 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
             foo: {
               rules: {
                 update: [],
-                insert: []
+                insert: [],
+                delete: []
               },
               versioning_enabled: true
             },
@@ -87,12 +101,18 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
               },
               rules: {
                 insert: [],
-                update: []
+                update: [],
+                delete: []
               },
               versioning_enabled: false
             }
           }
         },
+
+        reports: [],
+
+        receive_queue: :foo,
+        broadcast_queue: :bar
 
       })
 

@@ -15,7 +15,8 @@ module Watchy
         @config = {
           rules: {
             insert: [],
-            update: []
+            update: [],
+            delete: []
           },
           fields: {},
           versioning_enabled: true
@@ -45,6 +46,14 @@ module Watchy
       def on_update(*args, &block)
         raise 'Block must accept a two arguments' unless (block.arity == 2)
         @config[:rules][:update] << Watchy::UpdateRule.new(args.shift, &block)
+      end
+
+      #
+      # Defines a rule that should be enforced each time a row is deleted
+      #
+      def on_delete(*args, &block)
+        raise 'Block must accept a single argument' unless (block.arity == 1)
+        @config[:rules][:delete] << Watchy::DeleteRule.new(args.shift, &block)
       end
 
       #

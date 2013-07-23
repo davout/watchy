@@ -12,7 +12,7 @@ module Watchy
     #
     def logger
       unless @logger
-        c = config[:logging]
+        c = (respond_to?(:config) && config[:logging]) || (Settings[:logging])
 
         @logger = c[:logger]
         @logger.level = eval("Logger::Severity::#{c[:level].upcase}")

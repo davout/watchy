@@ -92,9 +92,6 @@ Watchy can be configured to generate and publish signed reports on the audited d
 
 ## TODO
 
- * DELETEs
- * Reporting should be plannable, how do we broadcast them ?
- * Reporting should be pluggable
  * BTC reports
  * Accounting reports
  * Violations report
@@ -106,3 +103,7 @@ Watchy can be configured to generate and publish signed reports on the audited d
 
  * Currently Watchy supports only MySQL databases.
  * The audit database will always be created on the same server as the audited data, it is therefore desirable that updates happen through a one-way mechanism, MySQL database replication being perfectly suited for this purpose.
+
+## Troubleshooting
+
+ * Auditor not receiving messages from the queue, however they get removed : see GPG sig verification trust level and retry with 'ultimate' trust.

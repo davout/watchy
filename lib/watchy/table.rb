@@ -138,22 +138,23 @@ module Watchy
       delta = watched_fields - audit_fields
       delta = [delta, (audit_fields - watched_fields).reject { |i| METADATA_FIELDS.include?(i['Field']) }].flatten
       metadata_present = METADATA_FIELDS.all? { |f| (audit_fields - watched_fields).map { |i| i['Field'] }.include?(f) }
-    
+
       if !delta.empty?
         raise "Structure has changed for table '#{name}'!"
       elsif !metadata_present
-        raise "Missing meta-data fields in audit table '#{name}'!"
+        missing_fields = METADATA_FIELDS - (audit_fields - watched_fields).map { |i| i['Field'] }
+        raise "Missing meta-data fields in audit table '#{name}' : #{missing_fields.join(', ')}."
       else
         logger.info "Audit table #{name} is up to date."
       end
     end
 
     # 
-    # Adds a +_deleted_at TIMESTAMP NULL+ field to the audit table
+    # Adds a +_deleted_at BIGINT NULL+ field to the audit table
     #
     def add_deletion_flag
       logger.info "Adding #{name}._deleted_at audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_deleted_at` TIMESTAMP NULL")
+      connection.query("ALTER TABLE #{audit} ADD `_deleted_at` BIGINT NULL")
     end
 
     # 
@@ -206,7 +207,7 @@ module Watchy
 
       q = <<-EOF 
         INSERT INTO #{audit} 
-          SELECT #{watched}.*, NULL, 0, NULL, 0
+          SELECT #{watched}.*, NULL, 0, NULL, 0, NULL
           FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition} 
           WHERE #{audit}.`_last_version` IS NULL
       EOF
@@ -375,6 +376,37 @@ module Watchy
     end
 
     #
+    # Checks the deletions that happened on the watched table
+    #
+    def check_deletions
+      logger.debug "Checking for deletions in table #{name}"
+
+      q_find_deletions = <<-EOS
+        SELECT #{pkey_selection(audit)} 
+        FROM   #{audit} LEFT JOIN #{watched} ON #{pkey_equality_condition} 
+        WHERE
+          #{watched}.#{primary_key.first} IS NULL AND
+          `_deleted_at` IS NULL
+      EOS
+
+      deletions = connection.query(q_find_deletions).to_a
+
+      if deletions.count > 0
+        deletions.each do |del|
+          row = connection.query("SELECT * FROM #{audit} WHERE #{condition_from_hashes(del)}").to_a[0]
+          rules[:delete].each do |rule|
+            v = rule.execute(row)
+            record_violation(v, row, rule.name, row['_last_version']) if v
+          end
+        end
+
+        q_flag_deletions = "UPDATE #{audit} SET `_deleted_at` = #{Time.now.to_i} WHERE #{condition_from_hashes(deletions)}"
+        connection.query(q_flag_deletions)
+        logger.warn "Flagged #{deletions.count} deletions"
+      end
+    end
+
+    #
     # Records rule violations in the '_rule_violations' table. A rule violation
     #   is saved only if there is no other pending record for the same +rule_name+
     #   value.
@@ -398,7 +430,7 @@ module Watchy
         SELECT COUNT(*) AS CNT 
         FROM `#{auditor.audit_db}`.`_rule_violations` 
         WHERE  
-          #{field_condition} AND
+      #{field_condition} AND
           `pkey` = '#{connection.escape(pk.to_s)}' AND 
           `audited_table` = '#{name}' AND
           `state` = 'pending' AND
@@ -412,7 +444,7 @@ module Watchy
           (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `pkey`, `row_version`)
         VALUES 
           ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}',
-          #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.to_s)}', #{row_version})
+      #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.to_s)}', #{row_version})
       EOF
 
       if !already_exists
