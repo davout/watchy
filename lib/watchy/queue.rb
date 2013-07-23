@@ -23,7 +23,7 @@ module Watchy
     # @param msg [String] The message to push
     #
     def push(msg)
-      push_raw(wrap(msg))
+      push_raw(wrap(msg).to_s)
     end
 
     #

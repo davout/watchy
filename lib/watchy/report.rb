@@ -58,9 +58,21 @@ module Watchy
     # The database connection against which the report should run
     #
     def db
-      config && 
-        config[:database] && 
         config[:database][:connection]
+    end
+
+    #
+    # The audit DB name
+    #
+    def audit_db
+      config[:database][:audit_schema] 
+    end
+
+    #
+    # The watched DB name
+    #
+    def watched_db
+      config[:database][:schema]
     end
 
     #

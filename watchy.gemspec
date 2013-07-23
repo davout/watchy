@@ -29,7 +29,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'aws-sdk'
   s.add_dependency 'parse-cron'
 
-  s.files        = Dir.glob('{bin,lib}/**/*') + %w(LICENSE README.md)
+  s.files        = Dir.glob('{templates,bin,lib}/**/*') + %w(LICENSE README.md)
   s.executables  = ['watchy']
   s.require_path = 'lib'
 end

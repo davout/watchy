@@ -1,3 +1,5 @@
+require 'watchy/reports/violations'
+
 module Watchy
   module Config
 
@@ -7,7 +9,7 @@ module Watchy
     class ReportingConfigBuilder
 
       def initialize
-        @reports = []
+        @reports = [ Watchy::Reports::Violations.new('* * * * *') ]
       end
 
       #
