@@ -100,7 +100,8 @@ module Watchy
     # Runs the configured reports if necessary
     #
     def run_reports!
-      reports.select(&:due?).each do |r|
+      @reports.select(&:due?).each do |r|
+        logger.info("Generating report '#{r.class}'")
         r.config ||= config
         r.broadcast!
       end

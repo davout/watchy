@@ -56,7 +56,6 @@ describe Watchy::Field do
 
   describe '#rules' do
     it 'should return the rules' do
-      puts subject.instance_variable_get(:@rules).inspect
       subject.rules(:update)[0].should be_an_instance_of(Watchy::DefaultUpdateRule)
     end
   end
