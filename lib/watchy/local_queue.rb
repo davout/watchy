@@ -17,6 +17,7 @@ module Watchy
     # @param msg [String] Message to push
     #
     def push_raw(msg)
+      puts msg
       @queue << msg
     end
 

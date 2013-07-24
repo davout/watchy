@@ -2,7 +2,7 @@ require 'watchy/report'
 
 module Watchy
   module Reports
-    
+
     #
     # This report lists currently active rule violations, it is sent every
     #   ten minutes if violations are present.
@@ -27,7 +27,16 @@ module Watchy
       # The currently active violations
       #
       def violations
-        db.query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING'").to_a
+        unless @violations 
+          @violations = db.
+            query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING'").to_a
+        end
+
+        @violations
+      end
+
+      def signoff_command
+        @violations.map { |v| v['fingerprint'].to_s }.join(',')
       end
 
 
@@ -36,8 +45,10 @@ module Watchy
       #   only if violations are pending
       #
       def due?
-        super && violations_present?
+        super && !violations.empty?
+        true
       end
+
     end
   end
 end

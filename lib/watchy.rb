@@ -3,6 +3,7 @@ require 'watchy/config/defaults'
 require 'watchy/config/dsl'
 require 'watchy/auditor'
 require 'watchy/amazon_sqs'
+require 'colored_logger'
 
 # 
 # The Watchy module implements the +boot!+ method used to spawn a new +Watchy::Auditor+ instance

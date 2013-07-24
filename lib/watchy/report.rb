@@ -32,6 +32,7 @@ module Watchy
     def generate
       report = do_render
       @next_run = cron_parser && cron_parser.next(Time.now)
+      puts report
       report
     end
 
@@ -58,7 +59,7 @@ module Watchy
     # The database connection against which the report should run
     #
     def db
-        config[:database][:connection]
+      @db ||= Mysql2::Client.new(config[:database])
     end
 
     #
@@ -89,6 +90,10 @@ module Watchy
     #
     def broadcast!
       config[:broadcast_queue].push(generate)
+    end
+
+    def escapeHTML(str)
+      str
     end
 
   end
