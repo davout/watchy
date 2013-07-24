@@ -1,6 +1,9 @@
 require 'mustache'
 require 'parse-cron'
 
+require 'watchy/database_helper'
+require 'watchy/queues_helper'
+
 module Watchy
 
   #
@@ -8,10 +11,8 @@ module Watchy
   #
   class Report < Mustache
 
-    #
-    # The settings defined globally
-    #
-    attr_accessor :config
+    include Watchy::DatabaseHelper
+    include Watchy::QueuesHelper
 
     #
     # Initializes a report
@@ -32,7 +33,6 @@ module Watchy
     def generate
       report = do_render
       @next_run = cron_parser && cron_parser.next(Time.now)
-      puts report
       report
     end
 
@@ -56,27 +56,6 @@ module Watchy
     end
 
     #
-    # The database connection against which the report should run
-    #
-    def db
-      @db ||= Mysql2::Client.new(config[:database])
-    end
-
-    #
-    # The audit DB name
-    #
-    def audit_db
-      config[:database][:audit_schema] 
-    end
-
-    #
-    # The watched DB name
-    #
-    def watched_db
-      config[:database][:schema]
-    end
-
-    #
     # Returns the +CronParser+ instance responsible for scheduling this report
     #
     # @return [CronParser] The configured cron definition
@@ -89,7 +68,7 @@ module Watchy
     # Pushes a report on the reporting queue
     #
     def broadcast!
-      config[:broadcast_queue].push(generate)
+      broadcast_queue.push(generate)
     end
 
     def escapeHTML(str)

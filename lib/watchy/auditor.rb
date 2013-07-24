@@ -101,8 +101,7 @@ module Watchy
     #
     def run_reports!
       @reports.select(&:due?).each do |r|
-        logger.info("Generating report '#{r.class}'")
-        r.config ||= config
+        logger.warn("Generating report '#{r.class}'")
         r.broadcast!
       end
     end

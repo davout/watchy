@@ -87,7 +87,9 @@ module Watchy
       # @return [Hash] The configuration hash
       #
       def resolve
-        @config.inject({}) { |memo, h| memo.merge(h) }
+        @config = @config.inject({}) { |memo, h| memo.merge(h) }
+        @config.merge!(ReportingConfigBuilder.new.build) unless @config[:reports] 
+        @config
       end
 
     end

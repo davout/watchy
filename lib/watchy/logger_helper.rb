@@ -10,15 +10,19 @@ module Watchy
     #
     # @return [Logger] The current logger
     #
-    def logger
-      unless @logger
-        c = (respond_to?(:config) && config[:logging]) || (Settings[:logging])
-
-        @logger = c[:logger]
-        @logger.level = eval("Logger::Severity::#{c[:level].upcase}")
+    def self.logger
+      @@logger ||= nil
+      unless @@logger
+        c = Settings[:logging] 
+        @@logger = c[:logger]
+        @@logger.level = eval("Logger::Severity::#{c[:level].upcase}")
       end
 
-      @logger
+      @@logger
+    end
+
+    def logger
+      LoggerHelper.logger
     end
 
   end

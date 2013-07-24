@@ -1,3 +1,5 @@
+require 'watchy/violation'
+
 module Watchy
 
   #
@@ -5,11 +7,13 @@ module Watchy
   #
   class Message
 
+    include Watchy::LoggerHelper
+
     # The message body
     attr_accessor :body
 
     def initialize(body)
-      @body = body
+      @body = body.to_s.lines.select { |l| !l.strip.empty? }.map(&:chomp).join
     end
 
     #
@@ -25,6 +29,11 @@ module Watchy
     # Handles the message
     #
     def handle
+      chunks = body.split('|')
+      case chunks[0]
+      when 'SIGNOFF' then Watchy::Violation.signoff(chunks[1].split(','))
+      else raise('Invalid command received')
+      end
     end
   end
 end

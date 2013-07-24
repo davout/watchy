@@ -8,12 +8,14 @@ module Watchy
   #
   class Table
 
+    include Watchy::DatabaseHelper
+
     #
     # The field names used internally for auditing
     #
     METADATA_FIELDS = %w{ _copied_at _has_delta _last_version _has_violation _deleted_at }
 
-    attr_accessor :name, :columns, :auditor, :connection, :logger, :rules, :versioning_enabled
+    attr_accessor :name, :columns, :auditor, :db, :logger, :rules, :versioning_enabled
 
     #
     # Initializes a table given an +auditor+ and a +name+
@@ -25,7 +27,7 @@ module Watchy
     #   INSERTs, UPDATEs, and DELETEs for this table
     #
     def initialize(auditor, name, rules, versioning_enabled = false)
-      @connection         = auditor.connection
+      @db         = auditor.db
       @logger             = auditor.logger
       @auditor            = auditor
       @rules              = rules
@@ -44,7 +46,7 @@ module Watchy
     #   => "`audited_db`.`audited_table`"
     #
     def watched
-      identifier(auditor.watched_db) 
+      identifier(watched_db) 
     end
 
     #
@@ -58,7 +60,7 @@ module Watchy
     #   => "`audit_db`.`audited_table`"
     #
     def audit
-      identifier(auditor.audit_db)
+      identifier(audit_db)
     end
 
     #
@@ -112,7 +114,7 @@ module Watchy
     # @return [Boolean] Whether the audit table exists
     #
     def exists?
-      Table.exists?(connection, auditor.audit_db, name)
+      Table.exists?(db, auditor.audit_db, name)
     end
 
     #
@@ -120,7 +122,7 @@ module Watchy
     #
     def copy_structure
       logger.info "Copying structure for table #{name} from watched to audit database"
-      connection.query("CREATE TABLE #{audit} LIKE #{watched}")
+      db.query("CREATE TABLE #{audit} LIKE #{watched}")
       add_copied_at_field
       add_has_delta_field
       add_last_version_field
@@ -133,8 +135,8 @@ module Watchy
     # If the structures are different an exception is raised.
     # 
     def check_for_structure_changes!
-      watched_fields = connection.query("DESC #{watched}").to_a
-      audit_fields   = connection.query("DESC #{audit}").to_a
+      watched_fields = db.query("DESC #{watched}").to_a
+      audit_fields   = db.query("DESC #{audit}").to_a
       delta = watched_fields - audit_fields
       delta = [delta, (audit_fields - watched_fields).reject { |i| METADATA_FIELDS.include?(i['Field']) }].flatten
       metadata_present = METADATA_FIELDS.all? { |f| (audit_fields - watched_fields).map { |i| i['Field'] }.include?(f) }
@@ -154,7 +156,7 @@ module Watchy
     #
     def add_deletion_flag
       logger.info "Adding #{name}._deleted_at audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_deleted_at` BIGINT NULL")
+      db.query("ALTER TABLE #{audit} ADD `_deleted_at` BIGINT NULL")
     end
 
     # 
@@ -162,7 +164,7 @@ module Watchy
     #
     def add_copied_at_field
       logger.info "Adding #{name}._copied_at audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_copied_at` TIMESTAMP NULL")
+      db.query("ALTER TABLE #{audit} ADD `_copied_at` TIMESTAMP NULL")
     end
 
     #
@@ -170,7 +172,7 @@ module Watchy
     #
     def add_has_delta_field
       logger.info "Adding #{name}._has_delta audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_has_delta` TINYINT NOT NULL DEFAULT 0")
+      db.query("ALTER TABLE #{audit} ADD `_has_delta` TINYINT NOT NULL DEFAULT 0")
     end
 
     #
@@ -178,7 +180,7 @@ module Watchy
     #
     def add_last_version_field
       logger.info "Adding #{name}._last_version audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_last_version` BIGINT NULL") 
+      db.query("ALTER TABLE #{audit} ADD `_last_version` BIGINT NULL") 
     end
 
     #
@@ -186,7 +188,7 @@ module Watchy
     #
     def add_has_violation_field
       logger.info "Adding #{name}._has_violation audit field..."
-      connection.query("ALTER TABLE #{audit} ADD `_has_violation` TINYINT NOT NULL DEFAULT 0") 
+      db.query("ALTER TABLE #{audit} ADD `_has_violation` TINYINT NOT NULL DEFAULT 0") 
     end
 
     #
@@ -194,7 +196,7 @@ module Watchy
     # audit table with the current timestamp.
     #
     def stamp_new_rows
-      connection.query("UPDATE #{audit} SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL")
+      db.query("UPDATE #{audit} SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL")
     end
 
     #
@@ -212,8 +214,8 @@ module Watchy
           WHERE #{audit}.`_last_version` IS NULL
       EOF
 
-      connection.query(q)
-      cnt = connection.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
+      db.query(q)
+      cnt = db.query("SELECT COUNT(*) FROM #{audit} WHERE `_copied_at` IS NULL").to_a[0].flatten.to_a[1]
       logger.info "Copied #{cnt} new rows for table #{name}."
 
       version_inserted_rows if cnt > 0
@@ -239,8 +241,8 @@ module Watchy
 
         q_audit_update = "UPDATE #{audit} SET `_last_version`= #{last_version} WHERE `_copied_at` IS NULL"
 
-        connection.query(q_versioning)
-        connection.query(q_audit_update)
+        db.query(q_versioning)
+        db.query(q_audit_update)
       end
     end
 
@@ -252,11 +254,11 @@ module Watchy
       logger.debug "Flagging row deltas for #{name}"
 
       q = "SELECT #{pkey_selection(audit)} FROM #{audit} INNER JOIN #{watched} ON #{pkey_equality_condition} WHERE #{differences_filter}"
-      r = connection.query(q).to_a
+      r = db.query(q).to_a
 
       unless r.count.zero?
         q = "UPDATE #{audit} SET `_has_delta` = 1 WHERE #{condition_from_hashes(r, audit)}"
-        connection.query(q) 
+        db.query(q) 
         logger.warn "Flagged #{r.count} rows for check in #{name}" 
       end
     end
@@ -280,8 +282,8 @@ module Watchy
 
         q_audit_update = "UPDATE #{audit} SET `_last_version` = #{last_version} WHERE `_has_delta` = 1"
 
-        connection.query(q_versioning)
-        connection.query(q_audit_update)
+        db.query(q_versioning)
+        db.query(q_audit_update)
       end
     end
 
@@ -291,7 +293,7 @@ module Watchy
     def unflag_row_deltas
       logger.debug "Resetting row delta flags for #{name}"
       q = "UPDATE #{audit} SET `_has_delta` = 0"
-      connection.query(q)
+      db.query(q)
     end
 
     #
@@ -314,9 +316,9 @@ module Watchy
         WHERE `_has_delta`= 1 AND #{unversioned_filter} 
       EOS
 
-      connection.query(q_rows_to_update).each do |row|
-        watched_row = connection.query("SELECT * FROM #{watched} WHERE #{condition_from_hashes(row)}").to_a[0]
-        connection.query("UPDATE #{audit} SET #{assignment_from_hash(watched_row)} WHERE #{condition_from_hashes(row)}")
+      db.query(q_rows_to_update).each do |row|
+        watched_row = db.query("SELECT * FROM #{watched} WHERE #{condition_from_hashes(row)}").to_a[0]
+        db.query("UPDATE #{audit} SET #{assignment_from_hash(watched_row)} WHERE #{condition_from_hashes(row)}")
       end
     end
 
@@ -329,12 +331,12 @@ module Watchy
 
       logger.debug "Running UPDATE checks for #{name}"
 
-      connection.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
+      db.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
         pkey = audit_row.select { |k,v| primary_key.include?(k) }
         logger.debug "Checking row: #{pkey}"
 
         watched_row_query = "SELECT * FROM #{watched} WHERE #{condition_from_hashes(pkey)}"
-        watched_row = connection.query(watched_row_query).first
+        watched_row = db.query(watched_row_query).first
 
         # If we do not have a matched row here it'll show in the deletion checks, so we
         # do nothing specific here
@@ -359,7 +361,7 @@ module Watchy
     def check_rules_on_insert
       logger.debug "Running INSERT checks for #{name}"
 
-      connection.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
+      db.query("SELECT * FROM #{audit} WHERE `_copied_at` IS NULL").each do |audit_row|
         pkey = audit_row.select { |k,v| primary_key.include?(k) }
         logger.debug "Checking row: #{pkey}"
 
@@ -389,11 +391,11 @@ module Watchy
           `_deleted_at` IS NULL
       EOS
 
-      deletions = connection.query(q_find_deletions).to_a
+      deletions = db.query(q_find_deletions).to_a
 
       if deletions.count > 0
         deletions.each do |del|
-          row = connection.query("SELECT * FROM #{audit} WHERE #{condition_from_hashes(del)}").to_a[0]
+          row = db.query("SELECT * FROM #{audit} WHERE #{condition_from_hashes(del)}").to_a[0]
           rules[:delete].each do |rule|
             v = rule.execute(row)
             record_violation(v, row, rule.name, row['_last_version']) if v
@@ -401,7 +403,7 @@ module Watchy
         end
 
         q_flag_deletions = "UPDATE #{audit} SET `_deleted_at` = #{Time.now.to_i} WHERE #{condition_from_hashes(deletions)}"
-        connection.query(q_flag_deletions)
+        db.query(q_flag_deletions)
         logger.warn "Flagged #{deletions.count} deletions"
       end
     end
@@ -431,28 +433,28 @@ module Watchy
         FROM `#{auditor.audit_db}`.`_rule_violations` 
         WHERE  
       #{field_condition} AND
-          `pkey` = '#{connection.escape(pk.to_s)}' AND 
+          `pkey` = '#{db.escape(pk.to_s)}' AND 
           `audited_table` = '#{name}' AND
           `state` = 'pending' AND
           `name` = '#{rule_name}'
       EOS
 
-      already_exists = connection.query(q_already_exists).to_a[0]['CNT'] > 0
+      already_exists = db.query(q_already_exists).to_a[0]['CNT'] > 0
 
       q = <<-EOF
         INSERT INTO `#{auditor.audit_db}`.`_rule_violations` 
-          (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `pkey`, `row_version`)
+          (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `item`, `pkey`, `row_version`, `state`)
         VALUES 
           ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}',
-      #{stamp}, '#{connection.escape(serialized)}', '#{connection.escape(pk.to_s)}', #{row_version})
+      #{stamp}, '#{db.escape(violation)}', '#{db.escape(serialized)}', '#{db.escape(pk.to_s)}', #{row_version}, 'PENDING')
       EOF
 
       if !already_exists
         logger.error "Recording violation [#{fingerprint[0..16]}] for '#{rule_name}' ('#{name}'.'#{field}') at #{stamp}"
-        connection.query(q)
+        db.query(q)
       end
 
-      connection.query("UPDATE #{audit} SET `_has_violation` = 1 WHERE #{condition_from_hashes(pk)}")
+      db.query("UPDATE #{audit} SET `_has_violation` = 1 WHERE #{condition_from_hashes(pk)}")
     end
 
     #
@@ -460,8 +462,8 @@ module Watchy
     #
     # @return [Array] An array of the table's fields
     #
-    def fields(db = :watched)
-      @fields ||= connection.query("DESC #{send(db)}").map do |f|
+    def fields(for_db = :watched)
+      @fields ||= db.query("DESC #{send(for_db)}").map do |f|
         Watchy::Field.new(
           self,
           f['Field'],
@@ -558,13 +560,13 @@ module Watchy
     #
     # Tests whether the table exists in the given schema
     #
-    # @param connection [Mysql2::Client] The database connection to use
+    # @param db [Mysql2::Client] The database db to use
     # @param schema [String] The schema in which the table existence should be checked
     # @param table [String] The table name whose existence should be checked
     # @return [Boolean] Whether the audit table exists
     #
-    def self.exists?(connection, schema, table)
-      connection.query("SHOW TABLES FROM `#{schema}`").to_a.map { |i| i.to_a.flatten[1] }.include?(table)
+    def self.exists?(db, schema, table)
+      db.query("SHOW TABLES FROM `#{schema}`").to_a.map { |i| i.to_a.flatten[1] }.include?(table)
     end
 
     #
@@ -572,12 +574,12 @@ module Watchy
     #
     def create_versioning_table
       logger.info "Creating versioning table '_v_#{name}' in the audit schema"
-      connection.query("CREATE TABLE #{versioning} LIKE #{watched}")
-      connection.query("ALTER TABLE #{versioning} ADD `_row_version` BIGINT NOT NULL DEFAULT 0")
-      connection.query("ALTER TABLE #{versioning} DROP PRIMARY KEY, ADD PRIMARY KEY (#{([primary_key] << '_row_version').flatten.join(',')})")
+      db.query("CREATE TABLE #{versioning} LIKE #{watched}")
+      db.query("ALTER TABLE #{versioning} ADD `_row_version` BIGINT NOT NULL DEFAULT 0")
+      db.query("ALTER TABLE #{versioning} DROP PRIMARY KEY, ADD PRIMARY KEY (#{([primary_key] << '_row_version').flatten.join(',')})")
 
-      connection.query("SHOW CREATE TABLE #{versioning}").to_a[0]['Create Table'].scan(/UNIQUE KEY `([^`]+)`/).flatten.each do |idx|
-        connection.query("ALTER TABLE #{versioning} DROP INDEX `#{idx}`")
+      db.query("SHOW CREATE TABLE #{versioning}").to_a[0]['Create Table'].scan(/UNIQUE KEY `([^`]+)`/).flatten.each do |idx|
+        db.query("ALTER TABLE #{versioning} DROP INDEX `#{idx}`")
       end
     end
 

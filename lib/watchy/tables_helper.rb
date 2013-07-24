@@ -21,9 +21,11 @@ module Watchy
             `name` VARCHAR(255) NOT NULL,
             `stamp` BIGINT NOT NULL,
             `description` VARCHAR(255) NOT NULL,
+            `item` TEXT NOT NULL,
             `pkey` TEXT NULL,
             `row_version` BIGINT NOT NULL,
             `state` VARCHAR(10) NOT NULL DEFAULT 'pending',
+            `signed_off_at` BIGINT NULL,
             PRIMARY KEY (`id`),
             UNIQUE INDEX `fingerprint_UNIQUE` (`fingerprint` ASC) )
         EOS

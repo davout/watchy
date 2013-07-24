@@ -46,7 +46,6 @@ module Watchy
       #
       def due?
         super && !violations.empty?
-        true
       end
 
     end
