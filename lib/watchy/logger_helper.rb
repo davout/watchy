@@ -22,6 +22,11 @@ module Watchy
       @@logger
     end
 
+    #
+    # Returns the current logger
+    #
+    # @return [Logger] The current logger
+    #
     def logger
       LoggerHelper.logger
     end

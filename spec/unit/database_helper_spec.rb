@@ -15,11 +15,30 @@ describe Watchy::DatabaseHelper do
   end
 
   describe '#db' do
-    before { subject.stub(:config).and_return({}) }
-
     it 'should memoize the value returned by #connect_db' do
       Watchy::DatabaseHelper.should_receive(:connect_db).once.and_return('foo')
       2.times { subject.db }
     end
   end
+
+  context 'when accessing settings' do
+    before { Settings[:database] = {} }
+
+    describe '#audit_db' do
+      before { Settings[:database][:audit_schema] = 'yoodeloo' }
+
+      it 'should return the elelement in the config hash' do
+        subject.audit_db.should eql('yoodeloo')
+      end
+    end
+
+    describe '#watched_db' do
+      before { Settings[:database][:schema] = 'yoodeluu' }
+
+      it 'should return the elelement in the config hash' do
+        subject.watched_db.should eql('yoodeluu')
+      end
+    end
+  end
+
 end

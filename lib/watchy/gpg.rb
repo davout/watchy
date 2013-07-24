@@ -69,7 +69,7 @@ module Watchy
     # Decrypts the signed text and verifies its signature, returns +nil+ unless
     #   the signature correctly verifies against a public key present in +verify_sigs_with+
     #
-    # @param [String] Encrypted signed data
+    # @param data [String] Encrypted signed data
     # @return [String] The encrypted data if there is at least one valid signature made
     #   by a configured key
     #

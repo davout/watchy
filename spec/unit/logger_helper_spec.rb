@@ -9,14 +9,15 @@ describe Watchy::LoggerHelper do
   describe '#logger' do
     before do
 
-      puts Settings[:logging]
-
       @l = Object.new
       Settings.stub(:[]).and_return({
         logger: @l,
         level: 'bar'
       })
+
       @l.stub(:level=)
+
+      Watchy::LoggerHelper.class_variable_set(:@@logger, nil)
     end
 
     it 'should set the loglevel once and return the logger' do

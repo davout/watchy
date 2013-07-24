@@ -9,6 +9,13 @@ module Watchy
       include Watchy::DatabaseHelper
     end
 
+    #
+    # Marks violation records as 'SIGNED_OFF' in order to indicate that
+    #   the records have been taken into account and acted upon
+    #
+    # @param fingerprints [Array<String>] The collection of violation fingerprints
+    #   to sign-off
+    #
     def self.signoff(fingerprints = [])
       fps = fingerprints.select { |f| f.match(/\A[a-z0-9]{64}\Z/) }
 

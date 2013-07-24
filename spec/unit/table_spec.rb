@@ -9,7 +9,6 @@ describe 'Watchy::Table' do
   before do
     subject.stub(:audit_db).and_return('yoo')
     subject.stub(:watched_db).and_return('yaa')
-    subject.stub(:watched)
   end
 
   describe '#watched' do
@@ -238,7 +237,7 @@ describe 'Watchy::Table' do
 
     it 'should check for deletions' do
       subject.db.should_receive(:query).once.ordered.and_return([:foo])
-      subject.db.should_receive(:query).once.ordered
+      subject.db.should_receive(:query).once.ordered.and_return([{}])
       subject.should_receive(:rules).and_return({delete: [@rule]})
       @rule.should_receive(:execute).and_return(:foo)
       subject.should_receive(:record_violation)

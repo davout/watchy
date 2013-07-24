@@ -71,6 +71,12 @@ module Watchy
       broadcast_queue.push(generate)
     end
 
+    #
+    # Disables the HTML-escaping done by default by Mustache
+    #
+    # @param str [String] The string to escape
+    # @return [String] The same unbesmirched string
+    #
     def escapeHTML(str)
       str
     end

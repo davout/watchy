@@ -16,7 +16,7 @@ module Watchy
       # Adds a report to the report collection, and sets the run interval
       #   according to the +cron_def+ parameter.
       #
-      # @report_class [Watchy::Report] The report class, which should subclass +Watchy::Report+
+      # @param report_class [Watchy::Report] The report class, which should subclass +Watchy::Report+
       # @param cron_def [String] The cron definition, if +nil+ is given the report
       #   will never be run
       #

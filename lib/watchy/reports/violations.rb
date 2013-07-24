@@ -1,6 +1,11 @@
 require 'watchy/report'
 
 module Watchy
+
+  #
+  # This module contains the implementations of the standard reports
+  #   that should be used in all watchy setups
+  #
   module Reports
 
     #
@@ -10,7 +15,9 @@ module Watchy
     class Violations < Watchy::Report
 
       #
-      # The report template
+      # The report template contents as a string
+      #
+      # @return [String] The temaplate contents
       #
       def template
         File.read(File.expand_path('../../../../templates/violations.md.mustache', __FILE__))
@@ -19,12 +26,16 @@ module Watchy
       #
       # The generation time
       #
+      # @return [Time] The current time
+      #
       def generated_at
         Time.now
       end
 
       #
-      # The currently active violations
+      # The violations currently in 'PENDING' state
+      #
+      # @return [Array<Hash>] The currently active violations
       #
       def violations
         unless @violations 
@@ -35,6 +46,11 @@ module Watchy
         @violations
       end
 
+      #
+      # Returns the comma-separated fingerprints of the currently pending violations
+      #
+      # @return [String] The comma-separated list of fingerprints
+      #
       def signoff_command
         @violations.map { |v| v['fingerprint'].to_s }.join(',')
       end
@@ -43,6 +59,8 @@ module Watchy
       #
       # Overridden version to take into account the fact that the report is due
       #   only if violations are pending
+      #
+      # @return [Boolean] Whether the report is due
       #
       def due?
         super && !violations.empty?
