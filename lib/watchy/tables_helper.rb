@@ -5,6 +5,9 @@ module Watchy
   #
   module TablesHelper
 
+    include Watchy::DatabaseHelper
+    include Watchy::LoggerHelper
+
     #
     # Returns the DDL for creating the metadata tables
     #
@@ -57,11 +60,11 @@ module Watchy
     #
     def add_metadata_tables!
       metadata_tables_ddl.each do |table, ddl_script|
-        if Table.exists?(connection, audit_db, table)
+        if Table.exists?(db, audit_db, table)
           logger.info "Table '#{table}' already exists."
         else
           logger.info "Creating table '#{table}' on the audit database"
-          connection.query(ddl_script)
+          db.query(ddl_script)
         end
       end
     end

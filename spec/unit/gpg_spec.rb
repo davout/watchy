@@ -89,7 +89,7 @@ describe Watchy::GPG do
 
   context 'when working with an encryptor' do
     before do 
-      @encryptor = mock(Object)
+      @encryptor = double(Object)
       subject.stub(:encryptor).and_return(@encryptor)
     end
 

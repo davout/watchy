@@ -34,10 +34,10 @@ describe Watchy::SchemaHelper do
         }
       })
       #Settings[:drop_audit_schema] = true
-      subject.stub(:connection).and_return(mock(Object))
+      subject.stub(:db).and_return(double(Object))
       subject.stub(:schema_exists?).and_return(true)
 
-      subject.connection.should_receive(:query).with('DROP DATABASE `bar`').once
+      subject.db.should_receive(:query).with('DROP DATABASE `bar`').once
       subject.should_receive(:create_schema!).once.with('bar')
 
       subject.bootstrap_databases!
@@ -46,8 +46,8 @@ describe Watchy::SchemaHelper do
 
   describe '#schema_exists?' do
     before do
-      subject.stub(:connection).and_return(mock(Object))
-      subject.connection.stub(:query).and_return([{ 'Database' => 'foo' }])
+      subject.stub(:db).and_return(double(Object))
+      subject.db.stub(:query).and_return([{ 'Database' => 'foo' }])
     end
 
     it 'should correctly report an existing schema' do
@@ -67,8 +67,8 @@ describe Watchy::SchemaHelper do
 
     it 'should create the database if does not exist yet' do
       subject.stub(:schema_exists?).and_return(false)
-      subject.stub(:connection).and_return(mock(Object))
-      subject.connection.should_receive(:query).with("CREATE DATABASE `bar`").once
+      subject.stub(:db).and_return(double(Object))
+      subject.db.should_receive(:query).with("CREATE DATABASE `bar`").once
       subject.create_schema!('bar')
     end
   end

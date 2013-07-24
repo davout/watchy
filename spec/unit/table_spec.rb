@@ -2,11 +2,19 @@ require_relative '../spec_helper.rb'
 
 describe 'Watchy::Table' do
 
-  subject { Watchy::Table.new(mock(Object).as_null_object, 'baz', { update: [], insert: []}) }
+  subject do 
+    Watchy::Table.new(double(Object).as_null_object, 'baz', { update: [], insert: []})
+  end
+
+  before do
+    subject.stub(:audit_db).and_return('yoo')
+    subject.stub(:watched_db).and_return('yaa')
+    subject.stub(:watched)
+  end
 
   describe '#watched' do
     it 'should return the fully qualified audited table name' do
-      subject.auditor.should_receive(:watched_db).once.and_return('foo')
+      subject.should_receive(:watched_db).once.and_return('foo')
       subject.should_receive(:identifier).once.with('foo').and_call_original
       subject.watched.should eq('`foo`.`baz`')
     end
@@ -14,7 +22,7 @@ describe 'Watchy::Table' do
 
   describe '#audit' do
     it 'should return the fully qualified audit table name' do
-      subject.auditor.should_receive(:audit_db).once.and_return('bar')
+      subject.should_receive(:audit_db).once.and_return('bar')
       subject.should_receive(:identifier).once.with('bar').and_call_original
       subject.audit.should eq('`bar`.`baz`')
     end
@@ -22,7 +30,7 @@ describe 'Watchy::Table' do
 
   describe '#versioning' do
     it 'should return the fully qualified versioning table name' do
-      subject.auditor.should_receive(:audit_db).once.and_return('bar')
+      subject.should_receive(:audit_db).once.and_return('bar')
       subject.should_receive(:identifier).once.with('bar', '_v_baz').and_call_original
       subject.versioning.should eq('`bar`.`_v_baz`')
     end
@@ -41,12 +49,12 @@ describe 'Watchy::Table' do
 
   describe '#fields' do
     before do
-      @connection = mock(Object).as_null_object
-      subject.stub(:connection).and_return(@connection)
+      @db = double(Object).as_null_object
+      subject.stub(:db).and_return(@db)
     end
 
     it 'should instantiate an array of fields' do
-      @connection.should_receive(:query).and_return([{}, {}])
+      @db.should_receive(:query).and_return([{}, {}])
       Watchy::Field.should_receive(:new).twice.and_return(:foo, :bar)
       subject.fields.should eql([:foo, :bar])
     end
@@ -54,9 +62,7 @@ describe 'Watchy::Table' do
 
   describe '#exists?' do
     it 'should correctly test for the existence of the audit table' do
-      subject.auditor.should_receive(:audit_db).once.and_return('baz')
-      subject.connection.should_receive(:query).
-        with("SHOW TABLES FROM `baz`").
+      subject.db.should_receive(:query).
         and_return([{ 'fizz' => 'baz' }])
 
       subject.exists?.should be_true
@@ -65,9 +71,9 @@ describe 'Watchy::Table' do
 
   describe '#copy_structure' do
     it 'should copy the audited table structure and add the copied_at field' do
-      subject.auditor.stub(:watched_db).and_return('bar')
-      subject.auditor.stub(:audit_db).and_return('foo')
-      subject.connection.should_receive(:query).with("CREATE TABLE `foo`.`baz` LIKE `bar`.`baz`")
+      subject.stub(:watched_db).and_return('bar')
+      subject.stub(:audit_db).and_return('foo')
+      subject.db.should_receive(:query).with("CREATE TABLE `foo`.`baz` LIKE `bar`.`baz`")
       subject.should_receive(:add_copied_at_field)
       subject.copy_structure
     end
@@ -75,39 +81,39 @@ describe 'Watchy::Table' do
 
   describe '#check_for_structure_changes!' do
     it 'should fail when changes are detected' do
-      subject.connection.stub(:query).and_return([{ 'Field' => 'hello_there' }], [])
+      subject.db.stub(:query).and_return([{ 'Field' => 'hello_there' }], [])
       expect { subject.check_for_structure_changes! }.to raise_error("Structure has changed for table 'baz'!")
     end
 
     it 'should succeed if the audit table has an extra copied_at field' do
-      subject.connection.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, 
-                                                      { 'Field' => '_has_delta' }, 
-                                                      { 'Field' => '_last_version' }, 
-                                                      { 'Field' => '_has_violation' },
-                                                      { 'Field' => '_deleted_at' } ])
+      subject.db.stub(:query).and_return([], [{ 'Field' => '_copied_at' }, 
+                                              { 'Field' => '_has_delta' }, 
+                                              { 'Field' => '_last_version' }, 
+                                              { 'Field' => '_has_violation' },
+                                              { 'Field' => '_deleted_at' } ])
 
       subject.logger.should_receive(:info)
       subject.check_for_structure_changes!
     end
 
     it 'should fail when the metadata fields are not present in the audit table' do
-      subject.connection.stub(:query).and_return([], [])
+      subject.db.stub(:query).and_return([], [])
       expect { subject.check_for_structure_changes! }.to raise_error
     end
   end
 
   describe '#add_copied_at_field' do
     it 'should issue the correct ALTER statement to the database' do
-      subject.auditor.should_receive(:audit_db).once.and_return('foo')
-      subject.connection.should_receive(:query).with("ALTER TABLE `foo`.`baz` ADD `_copied_at` TIMESTAMP NULL").once
+      subject.should_receive(:audit_db).once.and_return('foo')
+      subject.db.should_receive(:query).with("ALTER TABLE `foo`.`baz` ADD `_copied_at` TIMESTAMP NULL").once
       subject.add_copied_at_field
     end
   end
 
   describe '#stamp_new_rows' do
     it 'should issue the correct UPDATE statement to the database' do
-      subject.auditor.should_receive(:audit_db).once.and_return('foo')
-      subject.connection.should_receive(:query).with("UPDATE `foo`.`baz` SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL").once
+      subject.should_receive(:audit_db).once.and_return('foo')
+      subject.db.should_receive(:query).with("UPDATE `foo`.`baz` SET `_copied_at` = NOW() WHERE `_copied_at` IS NULL").once
       subject.stamp_new_rows
     end
   end
@@ -116,15 +122,15 @@ describe 'Watchy::Table' do
     before { subject.stub(:pkey_equality_condition) }
 
     it 'should return the number of inserted rows' do
-      subject.connection.should_receive(:query).twice.and_return(nil, [{ 'COUNT(*)' => 10 }])
+      subject.db.should_receive(:query).twice.and_return(nil, [{ 'COUNT(*)' => 10 }])
       subject.copy_new_rows.should eql(10)
     end
   end
 
   describe '#differences_filter' do
     before do
-      field1 = mock(Object).as_null_object
-      field2 = mock(Object).as_null_object
+      field1 = double(Object).as_null_object
+      field2 = double(Object).as_null_object
       field1.stub(:difference_filter).and_return('zibidee')
       field2.stub(:difference_filter).and_return('doo')
       subject.stub(:fields).and_return([field1, field2])
@@ -151,15 +157,15 @@ describe 'Watchy::Table' do
 
   describe '#flag_row_deltas' do
     before do
-      subject.connection.stub(:query).and_return([{ 'id' => 42 }])
+      subject.db.stub(:query).and_return([{ 'id' => 42 }])
       subject.stub(:primary_key).and_return(['id'])
       subject.stub(:differences_filter)
       subject.stub(:audit).and_return('`yoodeloo`')
     end
 
     it 'should flag the rows identified as being different' do
-      subject.connection.should_receive(:query)
-      subject.connection.should_receive(:query).
+      subject.db.should_receive(:query)
+      subject.db.should_receive(:query).
         with("UPDATE `yoodeloo` SET `_has_delta` = 1 WHERE ((`yoodeloo`.`id` = 42))")
 
       subject.flag_row_deltas
@@ -170,7 +176,7 @@ describe 'Watchy::Table' do
     before { subject.stub(:audit).and_return('`klakendaschen`') }
 
     it 'should issue the correct update statement' do
-      subject.connection.should_receive(:query).once.with('UPDATE `klakendaschen` SET `_has_delta` = 0')
+      subject.db.should_receive(:query).once.with('UPDATE `klakendaschen` SET `_has_delta` = 0')
       subject.unflag_row_deltas
     end
   end
@@ -178,14 +184,14 @@ describe 'Watchy::Table' do
   describe '#record_violation' do
 
     before do
-      c = mock(Object).as_null_object
-      subject.stub(:connection).and_return(c)
+      c = double(Object).as_null_object
+      subject.stub(:db).and_return(c)
     end
 
     it 'should record an audit violation correctly' do
-      subject.connection.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
-      subject.connection.should_receive(:query).twice
-      subject.connection.should_receive(:escape).exactly(3).times
+      subject.db.should_receive(:query).once.and_return([{ 'CNT' => 0 }])
+      subject.db.should_receive(:query).twice
+      subject.db.should_receive(:escape).exactly(4).times
       subject.record_violation('pouet', {}, 'prutendelschnitzeln', 0)
     end
   end
@@ -195,7 +201,7 @@ describe 'Watchy::Table' do
       some_field = Object.new
       some_rule = Object.new
 
-      subject.connection.should_receive(:query).and_return([{ 'id' => 1 }])
+      subject.db.should_receive(:query).and_return([{ 'id' => 1 }])
       subject.should_receive(:primary_key).and_return(['id'])
       subject.should_receive(:fields).and_return([some_field])
       some_field.should_receive(:on_update).and_return([])
@@ -211,7 +217,7 @@ describe 'Watchy::Table' do
       some_field = Object.new
       some_rule = Object.new
 
-      subject.connection.should_receive(:query).and_return([{ 'id' => 1 }])
+      subject.db.should_receive(:query).and_return([{ 'id' => 1 }])
       subject.should_receive(:primary_key).and_return(['id'])
       subject.should_receive(:fields).and_return([some_field])
       some_field.should_receive(:on_insert).and_return([])
@@ -231,12 +237,12 @@ describe 'Watchy::Table' do
     end
 
     it 'should check for deletions' do
-      subject.connection.should_receive(:query).once.ordered.and_return([:foo])
-      subject.connection.should_receive(:query).once.ordered
+      subject.db.should_receive(:query).once.ordered.and_return([:foo])
+      subject.db.should_receive(:query).once.ordered
       subject.should_receive(:rules).and_return({delete: [@rule]})
       @rule.should_receive(:execute).and_return(:foo)
       subject.should_receive(:record_violation)
-      subject.connection.should_receive(:query).once.ordered
+      subject.db.should_receive(:query).once.ordered
       subject.check_deletions
     end
   end
@@ -248,7 +254,7 @@ describe 'Watchy::Table' do
     end 
 
     it 'should create the versioning table, update the PK and remove unique indexes from it' do
-      c = subject.connection
+      c = subject.db
       c.should_receive(:query).once.ordered
       c.should_receive(:query).once.ordered
       c.should_receive(:query).once.ordered
@@ -274,14 +280,14 @@ describe 'Watchy::Table' do
 
     describe '#version_inserted_rows' do
       it 'should copy a row version to the versioning table' do
-        subject.connection.should_receive(:query).twice
+        subject.db.should_receive(:query).twice
         subject.version_inserted_rows
       end
     end
 
     describe '#version_flagged_rows' do
       it 'should copy a version for the flagged rows' do
-        subject.connection.should_receive(:query).twice
+        subject.db.should_receive(:query).twice
         subject.version_flagged_rows
       end
     end
@@ -290,8 +296,8 @@ describe 'Watchy::Table' do
   describe '#update_audit_table' do
     it 'should copy the watched DB modifications to the audit DB if possible' do
       subject.stub(:pkey_selection)
-      subject.connection.should_receive(:query).once.ordered.and_return([[]])
-      subject.connection.should_receive(:query).twice.ordered
+      subject.db.should_receive(:query).once.ordered.and_return([[]])
+      subject.db.should_receive(:query).twice.ordered.and_return([{}], nil)
       subject.update_audit_table
     end
   end

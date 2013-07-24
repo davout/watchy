@@ -3,7 +3,7 @@ require_relative '../spec_helper'
 describe Watchy do
   describe '.boot' do
     before do
-      @auditor = mock(Watchy::Auditor).as_null_object
+      @auditor = double(Watchy::Auditor).as_null_object
       Watchy::Auditor.should_receive(:new).and_return(@auditor)
     end
 

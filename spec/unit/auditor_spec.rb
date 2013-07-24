@@ -5,7 +5,7 @@ describe Watchy::Auditor do
   before do
     Watchy::Auditor.any_instance.stub(:bootstrap_databases!)
     Watchy::Auditor.any_instance.stub(:bootstrap_audit_tables!)
-    Watchy::Auditor.any_instance.stub(:logger).and_return(mock(Object).as_null_object)
+    Watchy::Auditor.any_instance.stub(:logger).and_return(double(Object).as_null_object)
   end
 
   subject do
@@ -146,13 +146,13 @@ describe Watchy::Auditor do
       @due_report.stub(:due?).and_return(true)
       @undue_report.stub(:due?).and_return(false)
 
-      subject.stub(:reports).and_return([@due_report, @undue_report])
-      @due_report.stub(:config).and_return("I'm fine thank you")
+      subject.instance_variable_set(:@reports, [@due_report, @undue_report])
     end
 
     describe '#run_reports!' do
       it 'should call Report#broadcast! for each configured and due report' do
-        subject.reports.each { |t| t.should_receive(:due?).once }
+        @due_report.should_receive(:due?).once
+        @undue_report.should_receive(:due?).once
         @due_report.should_receive(:broadcast!).once
         @undue_report.should_not_receive(:broadcast!)
         subject.run_reports!

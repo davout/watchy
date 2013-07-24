@@ -11,9 +11,9 @@ describe Watchy::Queue do
 
   describe '#push' do
     it 'should wrap the element and call the underlying backend' do
-      subject.should_receive(:wrap).with(:foo).once.and_return(:bar)
-      subject.should_receive(:push_raw).with(:bar).once
-      subject.push(:foo)
+      subject.should_receive(:wrap).with('foo').once.and_return('bar')
+      subject.should_receive(:push_raw).with('bar').once
+      subject.push('foo')
     end
   end
 

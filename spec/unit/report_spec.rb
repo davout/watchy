@@ -47,20 +47,10 @@ describe Watchy::Report do
     end
   end
 
-  describe '#db' do
-    before do
-      subject.stub(:config).and_return({database: { connection: :bar }})
-    end
-
-    it 'should return the DB connection' do
-      subject.db.should eql(:bar)
-    end
-  end
-
   describe '#broadcast' do
     before do
       @bq = Object.new
-      subject.stub(:config).and_return({broadcast_queue: @bq})
+      subject.stub(:broadcast_queue).and_return(@bq)
     end
 
     it 'should push a message to the queue' do

@@ -12,8 +12,6 @@ module Watchy
       include LoggerHelper
     end
 
-    def connection; db; end
-
     #
     # Connects to the supplied +db+
     #
@@ -24,20 +22,20 @@ module Watchy
       Mysql2::Client.new(db_config)
     end
 
-    def db; DatabaseHelper.db; end
-    def audit_db; DatabaseHelper.audit_db; end
-    def watched_db; DatabaseHelper.watched_db; end
+    def db
+      DatabaseHelper.db
+    end
 
     def self.db
       @@db ||= connect_db(Settings[:database])
     end
 
-    def self.audit_db
-      @@audit_db ||= Settings[:database][:audit_schema]
+    def audit_db
+      @audit_db ||= Settings[:database][:audit_schema]
     end
 
-    def self.watched_db
-      @@watched_db ||= Settings[:database][:schema]
+    def watched_db
+      @watched_db ||= Settings[:database][:schema]
     end
   end
 end

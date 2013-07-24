@@ -74,7 +74,7 @@ module Watchy
     #   => "`audit_db`.`_v_audited_table`"
     #
     def versioning
-      identifier(auditor.audit_db, "_v_#{name}")
+      identifier(audit_db, "_v_#{name}")
     end
 
     # 

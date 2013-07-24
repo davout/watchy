@@ -23,7 +23,7 @@ describe Watchy::Field do
   end
 
   before do
-    table = mock(Object).as_null_object
+    table = double(Object).as_null_object
     table.stub(:audit).and_return("`audit`.`table`")
     table.stub(:watched).and_return("`watched`.`table`")
     subject.stub(:name).and_return('field')

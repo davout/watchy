@@ -15,8 +15,8 @@ describe Watchy::TablesHelper do
             bar: { rules: { update: [], insert: [] }},
           }}}) 
 
-      existing_table = mock(Object)
-      missing_table = mock(Object)
+      existing_table = double(Object)
+      missing_table = double(Object)
 
       existing_table.should_receive(:exists?).once.and_return(true)
       existing_table.should_receive(:check_for_structure_changes!).once
@@ -56,19 +56,19 @@ describe Watchy::TablesHelper do
   describe '#add_metadata_tables' do
     before do
       subject.stub(:audit_db)
-      subject.stub(:connection).and_return(mock(Object).as_null_object)
-      Dummy.any_instance.stub(:logger).and_return(mock(Object).as_null_object)
+      subject.stub(:db).and_return(double(Object).as_null_object)
+      Dummy.any_instance.stub(:logger).and_return(double(Object).as_null_object)
     end
 
     it 'should execute the creation DDL statements' do
       Watchy::Table.stub(:exists?).and_return(false)
-      subject.should_receive(:connection).twice
+      subject.should_receive(:db).twice
       subject.add_metadata_tables!
     end
 
     it 'should not execute the creation DDL statements if the table already exists' do
       Watchy::Table.stub(:exists?).and_return(true)
-      subject.should_receive(:connection).once
+      subject.should_receive(:db).once
       subject.add_metadata_tables!
     end
   end

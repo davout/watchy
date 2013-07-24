@@ -78,7 +78,6 @@ module Watchy
       # @return [Hash] The configuration hash
       #
       def build
-        @config[:connection] = Mysql2::Client.new(@config)
         { database: @config }
       end
 

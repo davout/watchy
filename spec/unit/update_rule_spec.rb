@@ -5,7 +5,7 @@ describe Watchy::UpdateRule do
   subject { Watchy::UpdateRule.new(:foo) { |row1, row2| } }
 
   before do
-    rc = mock(Object).as_null_object
+    rc = double(Object).as_null_object
     subject.stub(:rule_code).and_return(rc)
   end
 

@@ -1,11 +1,14 @@
-require 'simplecov'
-SimpleCov.start
+#require 'simplecov'
+#SimpleCov.start
+
+require 'rspec'
 
 require(File.expand_path('../../lib/watchy', __FILE__))
 
 RSpec.configure do |config|
   config.before(:each) do
-    Settings[:loglevel] = 'unknown'
-    Mysql2::Client.stub(:new).as_null_object
+    Settings[:logging][:level] = 'unknown'
   end
+
+  config.mock_with :rspec
 end

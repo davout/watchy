@@ -5,6 +5,9 @@ module Watchy
   #
   module SchemaHelper
 
+    include Watchy::DatabaseHelper
+    include Watchy::LoggerHelper
+
     #
     # Bootsraps an audit database according to the defined +Settings+, drops the existing audit database if requested
     #
@@ -18,7 +21,7 @@ module Watchy
       if schema_exists?(audit_db)
         if config[:database][:drop_audit_schema]
           logger.warn "Dropping already existing audit database ..."
-          connection.query("DROP DATABASE `#{audit_db}`")
+          db.query("DROP DATABASE `#{audit_db}`")
           create_schema!(audit_db)
         end
       else
@@ -33,7 +36,7 @@ module Watchy
     # @return [Boolean] Whether the schema exists in the currently connected database
     #
     def schema_exists?(schema) 
-      connection.query('SHOW DATABASES').any? { |d| d['Database'] == schema }
+      db.query('SHOW DATABASES').any? { |d| d['Database'] == schema }
     end
 
     #
@@ -45,7 +48,7 @@ module Watchy
     #
     def create_schema!(schema)
       raise "Schema '#{schema}' already exists!" if schema_exists?(schema)
-      connection.query("CREATE DATABASE `#{schema}`")
+      db.query("CREATE DATABASE `#{schema}`")
     end
 
   end

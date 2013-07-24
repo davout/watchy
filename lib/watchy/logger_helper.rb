@@ -12,6 +12,7 @@ module Watchy
     #
     def self.logger
       @@logger ||= nil
+
       unless @@logger
         c = Settings[:logging] 
         @@logger = c[:logger]

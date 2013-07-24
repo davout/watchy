@@ -4,8 +4,6 @@ describe Watchy::Config::DSL do
   describe '.get_from' do
     it 'should read the configuration from a block' do
 
-Mysql2::Client.should_receive(:new).and_return(:db_conn)
-
       h = Watchy::Config::DSL.get_from do 
 
         sleep_for 42
@@ -53,7 +51,8 @@ Mysql2::Client.should_receive(:new).and_return(:db_conn)
       gpg = h.delete(:gpg)
       gpg.should be_an_instance_of Watchy::GPG
 
-      h[:database].delete(:connection).should eql(:db_conn)
+      r = h[:reports].delete_at(0)
+      r.should be_an_instance_of Watchy::Reports::Violations
 
       h[:audit][:tables][:foo][:rules][:delete].delete_at(0).
         should be_an_instance_of Watchy::DefaultDeleteRule
