@@ -9,7 +9,10 @@ module Watchy
     class ReportingConfigBuilder
 
       def initialize
-        @reports = [ Watchy::Reports::Violations.new('*/10 * * * *') ]
+        @reports = [ 
+          Watchy::Reports::Violations.new,
+          Watchy::Reports::Activity.new
+        ]
       end
 
       #

@@ -60,19 +60,34 @@ module Watchy
       while(!interrupted) do
         loop_start = Time.now
 
+        # Flags the rows that have changed since the last audit loop
         flag_row_deltas
+
+        # Copies rows that were inserted in the watched tables
         copy_new_rows
+
+        # Check if deletions happened on the watched tables
         check_deletions
+
+        # Enforce the different rules on the relevant items
         check_rules
 
-        # dispatch_alerts(reporting)
-        # trigger_scheduled_tasks
+        # Run the configured reports at their defined periodicity
         run_reports!
+
+        # Timestamps the newly inserted rows
         stamp_new_rows
+
+        # Copies modifications of the watched tables to the audit tables
         update_audit_tables
+
+        # Records a version of the rows that have changed in the watched tables
         version_flagged_rows
+
+        # Reset the "row has changed" flag
         unflag_row_deltas
 
+        # Receives messages from the queue and executes them
         receive_and_handle_messages
 
         logger.info("Last loop took #{"%.2f" % (Time.now - loop_start)}s")
