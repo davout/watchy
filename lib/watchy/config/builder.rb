@@ -22,6 +22,13 @@ module Watchy
       end
 
       #
+      # Sets the auditor identification string
+      #
+      def auditor(auditor_id)
+        @config << { auditor_id: auditor_id }
+      end
+
+      #
       # Sets the interval to sleep for, defaults to 1s
       #
       # @param s [Fixnum] The number of seconds to sleep between each audit loop

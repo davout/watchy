@@ -1,4 +1,5 @@
 require 'watchy/report'
+require 'watchy/tables_helper'
 
 module Watchy
 
@@ -9,6 +10,15 @@ module Watchy
     #   recently such as insertions, deletions, updates
     #
     class Activity < Watchy::Report
+
+      include Watchy::TablesHelper
+
+      # The default interval betwee activity reports
+      HOURS = 6
+
+      def initialize(crondef = nil)
+        super(crondef || "0 */#{HOURS} * * *")
+      end
 
       #
       # The report template contents as a string
@@ -41,12 +51,20 @@ module Watchy
             table: table.name,
             stats: [
               {
-                action: 'insert',
-                value: db.query("SELECT COUNT(*) AS CNT FROM #{table.audit} WHERE `copied_at` >= #{cutoff}").to_a[0]['CNT']
+                action: 'INSERTs',
+                value: db.query("SELECT COUNT(*) AS CNT FROM #{table.audit} WHERE `_copied_at` >= #{cutoff.to_i}").to_a[0]['CNT']
               },
               {
-                action: 'delete',
-                value: db.query("SELECT COUNT(*) AS CNT FROM #{table.audit} WHERE `deleted_at` >+ #{cutoff}").to_a[0]['CNT']
+                action: 'DELETEs',
+                value: db.query("SELECT COUNT(*) AS CNT FROM #{table.audit} WHERE `_deleted_at` >= #{cutoff.to_i}").to_a[0]['CNT']
+              },
+              {
+                action: 'UPDATEs',
+                value: db.query("SELECT COUNT(*) AS CNT FROM #{table.audit} WHERE `_copied_at` < #{cutoff.to_i} AND _last_version >= #{cutoff.to_i}").to_a[0]['CNT']
+              },
+              {
+                action: 'Violations',
+                value: db.query("SELECT COUNT(*) AS CNT FROM `#{audit_db}`._rule_violations WHERE `audited_table` = '#{table.name}' AND `stamp` > #{cutoff.to_i}").to_a[0]['CNT']
               }
             ]
           }
@@ -55,8 +73,22 @@ module Watchy
         act
       end
 
+      #
+      # The cutoff timestamp for retrieving the activity data
+      #
+      # @return [Time] The time it was +HOURS+ ago
+      #
       def cutoff
-        DateTime.now.advance(hours: -HOURS).strftime('%Y-%m-%d %H:%M:%S')
+        Time.now - (60 * 60 * HOURS)
+      end
+
+      #
+      # The cutoff time as string
+      #
+      # @return [String] The cutoff time
+      #
+      def cutoff_str
+        cutoff.strftime('%Y-%m-%d %H:%M:%S')
       end
 
       #

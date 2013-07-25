@@ -15,6 +15,13 @@ module Watchy
     class Violations < Watchy::Report
 
       #
+      # The default crondef is every ten minutes
+      #
+      def initialize(crondef = nil)
+        super(crondef || '*/10 * * * *')
+      end
+
+      #
       # The report template contents as a string
       #
       # @return [String] The temaplate contents

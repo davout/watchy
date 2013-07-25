@@ -6,14 +6,16 @@ describe Watchy::TablesHelper do
 
   subject { Dummy.new }
 
+  before do
+    Settings.stub(:[]).and_return({
+      tables: {
+        yoodeloo: { :rules => { update: [], insert: [], delete: [] }, :versioning_enabled => 42 },
+        yoodelaa: { :rules => { update: [], insert: [], delete: [] }, :versioning_enabled => 69 }
+      }})
+  end
+
   describe '#bootstrap_audit_tables!' do
     it 'should create missing tables and check the existing ones' do
-      subject.stub(:config).and_return({
-        audit: {
-          tables: {
-            foo: { rules: { update: [], insert: [] }},
-            bar: { rules: { update: [], insert: [] }},
-          }}}) 
 
       existing_table = double(Object)
       missing_table = double(Object)
@@ -32,22 +34,11 @@ describe Watchy::TablesHelper do
   end
 
   describe '#tables' do
-    before do
-      subject.stub(:config).and_return({
-        audit: {
-          tables: {
-            'yoodeloo' => { :rules => :foodelaa, :versioning_enabled => 42 },
-            'yoodelaa' => { :rules => :foodeloo, :versioning_enabled => 69 }
-          }
-        }
-      })
-
-      Watchy::Table.stub(:new).and_return(:yoo, :yaa)
-    end
+    before { Watchy::Table.stub(:new).and_return(:yoo, :yaa) }
 
     it 'should instantiate a Watchy::Table object for each configured table' do
-      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodeloo', :foodelaa, 42)
-      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodelaa', :foodeloo, 69)
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodeloo', { update: [], insert: [], delete: [] }, 42)
+      Watchy::Table.should_receive(:new).once.ordered.with(subject, 'yoodelaa', { update: [], insert: [], delete: [] }, 69)
 
       subject.tables.should eql([:yoo, :yaa])
     end

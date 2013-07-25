@@ -39,10 +39,10 @@ module Watchy
     # Bootstrap all the audited tables copies in the audit database
     #
     def bootstrap_audit_tables!
-      audited_tables = config[:audit][:tables].keys.map(&:to_s)
+      audited_tables = Settings[:audit][:tables].keys.map(&:to_s)
 
       audited_tables.each do |t| 
-        table = Table.new(self, t, config[:audit][:tables][t.to_sym][:rules], config[:audit][:tables][t.to_sym][:auditing_enabled])
+        table = Table.new(self, t, Settings[:audit][:tables][t.to_sym][:rules], Settings[:audit][:tables][t.to_sym][:auditing_enabled])
 
         if table.exists?
           table.check_for_structure_changes!
@@ -75,7 +75,7 @@ module Watchy
     # @return [Array<Watchy::Table>] The collection of audited tables
     #
     def tables
-      @tables ||= config[:audit][:tables].keys.map { |k| Table.new(self, k.to_s, config[:audit][:tables][k][:rules], config[:audit][:tables][k][:versioning_enabled]) }
+      @tables ||= Settings[:audit][:tables].keys.map { |k| Table.new(self, k.to_s, Settings[:audit][:tables][k][:rules], Settings[:audit][:tables][k][:versioning_enabled]) }
     end
 
   end

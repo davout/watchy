@@ -1,4 +1,5 @@
 require 'watchy/reports/violations'
+require 'watchy/reports/activity'
 
 module Watchy
   module Config

@@ -5,7 +5,6 @@ describe Watchy::Config::DSL do
     it 'should read the configuration from a block' do
 
       h = Watchy::Config::DSL.get_from do 
-
         sleep_for 42
 
         database do
@@ -53,6 +52,9 @@ describe Watchy::Config::DSL do
 
       r = h[:reports].delete_at(0)
       r.should be_an_instance_of Watchy::Reports::Violations
+
+      r = h[:reports].delete_at(0)
+      r.should be_an_instance_of Watchy::Reports::Activity
 
       h[:audit][:tables][:foo][:rules][:delete].delete_at(0).
         should be_an_instance_of Watchy::DefaultDeleteRule

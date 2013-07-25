@@ -81,5 +81,14 @@ module Watchy
       str
     end
 
+    #
+    # Returns the auditor identification string
+    #
+    # @return [String] The auditor identification string
+    #
+    def auditor_id
+      Settings[:auditor_id]
+    end
+
   end
 end
