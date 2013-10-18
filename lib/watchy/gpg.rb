@@ -118,7 +118,7 @@ module Watchy
     # @return [String] The encrypted text
     #
     def encrypt(text)
-      encryptor.encrypt(text, recipients: encrypt_to, always_trust: true, sign: true, signers: sign_with)
+      encryptor.encrypt(text, recipients: encrypt_to, always_trust: true, sign: !sign_with.empty?, signers: sign_with)
     end
 
   end

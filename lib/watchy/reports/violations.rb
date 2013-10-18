@@ -18,7 +18,7 @@ module Watchy
       # The default crondef is every ten minutes
       #
       def initialize(crondef = nil)
-        super(crondef || '*/10 * * * *')
+        super(crondef || '*/15 * * * *')
       end
 
       #

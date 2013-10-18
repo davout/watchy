@@ -23,7 +23,7 @@ module Watchy
       # @return [String] A string is returned if the rule fails, it should contain the error description
       #
       def on_update(rule_name = nil, &block)
-        raise 'Block must accept a two arguments' unless (block.arity == 2)
+        raise 'Block must accept two arguments' unless (block.arity == 2)
         @config[:update] << Watchy::UpdateRule.new(rule_name, &block)
       end
 

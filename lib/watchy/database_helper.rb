@@ -1,4 +1,4 @@
-require 'mysql2'
+require 'watchy/mysql2_wrapper'
 require 'watchy/logger_helper'
 
 module Watchy
@@ -19,7 +19,7 @@ module Watchy
     #
     def self.connect_db(db_config)
       logger.info "Connecting to #{db_config[:username]}@#{db_config[:hostname]}:#{db_config[:port]}..."
-      Mysql2::Client.new(db_config)
+      Mysql2Wrapper.new(db_config)
     end
 
     #

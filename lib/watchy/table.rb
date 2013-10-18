@@ -342,12 +342,12 @@ module Watchy
         # do nothing specific here
         if watched_row
           fields.each do |f|
-            violations = f.on_update(watched_row, audit_row)
+            violations = f.on_update(audit_row, watched_row)
             violations.compact.each { |v| record_violation(v[:description], audit_row, v[:rule_name], audit_row['_last_version'], f.name) }
           end
 
           rules[:update].each do |rule|
-            v = rule.execute(watched_row, audit_row)
+            v = rule.execute(audit_row, watched_row)
             record_violation(v, [watched_row, audit_row], rule.name, audit_row['_last_version']) if v
           end
         end
