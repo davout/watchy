@@ -342,12 +342,12 @@ module Watchy
         # do nothing specific here
         if watched_row
           fields.each do |f|
-            violations = f.on_update(audit_row, watched_row)
+            violations = f.on_update(audit_row, watched_row, self)
             violations.compact.each { |v| record_violation(v[:description], audit_row, v[:rule_name], audit_row['_last_version'], f.name) }
           end
 
           rules[:update].each do |rule|
-            v = rule.execute(audit_row, watched_row)
+            v = rule.execute(audit_row, watched_row, self)
             record_violation(v, [watched_row, audit_row], rule.name, audit_row['_last_version']) if v
           end
         end
@@ -366,12 +366,12 @@ module Watchy
         logger.debug "Checking row: #{pkey}"
 
         fields.each do |f|
-          violations = f.on_insert(audit_row)
+          violations = f.on_insert(audit_row, self)
           violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name], audit_row['_last_version'], f.name) }
         end
 
         rules[:insert].each do |rule|
-          v = rule.execute(audit_row)
+          v = rule.execute(audit_row, self)
           record_violation(v, audit_row, rule.name, audit_row['_last_version']) if v
         end
       end
@@ -554,7 +554,13 @@ module Watchy
     # @return [String] The escaped string representation of the object
     #
     def escaped_value(o)
-      (o.is_a?(String) || o.is_a?(Time)) ? "'#{o}'" : o.to_s
+      if o.is_a?(Time)
+        "'#{o}'"
+      elsif o.is_a?(String)
+        "'#{db.escape(o)}'"
+      else
+        o.to_s
+      end
     end
 
     #
