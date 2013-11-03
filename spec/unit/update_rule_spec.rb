@@ -5,12 +5,11 @@ describe Watchy::UpdateRule do
   subject { Watchy::UpdateRule.new(:foo) { |row1, row2| } }
 
   before do
-    rc = double(Object).as_null_object
-    subject.stub(:rule_code).and_return(rc)
+    @table = Object.new
   end
 
   it 'should call the supplied block when executed' do
-    subject.rule_code.should_receive(:call).once.with(:r1, :r2)
-    subject.execute(:r1, :r2)
+    @table.should_receive(:instance_exec).once.with(:r1, :r2, &subject.rule_code)
+    subject.execute(:r1, :r2, @table)
   end
 end

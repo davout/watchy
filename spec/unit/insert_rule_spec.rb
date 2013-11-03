@@ -5,12 +5,11 @@ describe Watchy::InsertRule do
   subject { Watchy::InsertRule.new(:foo) { |inserted_row| } }
 
   before do
-    rc = double(Object).as_null_object
-    subject.stub(:rule_code).and_return(rc)
+    @table = Object.new
   end
 
   it 'should call the supplied block when executed' do
-    subject.rule_code.should_receive(:call).once.with(:some_row)
-    subject.execute(:some_row)
+    @table.should_receive(:instance_exec).once.with(:some_row, &subject.rule_code)
+    subject.execute(:some_row, @table)
   end
 end
