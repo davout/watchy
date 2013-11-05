@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    watchy (0.0.9)
+    watchy (0.1.1)
       aws-sdk
       configliere
       docile

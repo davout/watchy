@@ -19,7 +19,7 @@ module Watchy
     #
     def self.connect_db(db_config)
       logger.info "Connecting to #{db_config[:username]}@#{db_config[:hostname]}:#{db_config[:port]}..."
-      Mysql2Wrapper.new(db_config)
+      Mysql2Wrapper.new({ reconnect: true }.merge(db_config))
     end
 
     #
@@ -58,6 +58,20 @@ module Watchy
     def watched_db
       @watched_db ||= Settings[:database][:schema]
     end
+
+    #
+    # Takes a snapshot of the audit DB, watched DB or both
+    #
+    # @param db [Symbol] The database for which a snapshot should be made
+    # @param dir [String] The directory in which the snapshot should be saved
+    # @param filename [String] The file name to use
+    #
+    def take_snapshot(db = :watched, dir = Dir.pwd, filename)
+      db_name = send("#{db}_db")
+      filename ||= "#{Time.now.strftime("%Y-%m-%d_%H%M%S")}_#{db_name}"
+      system("mysqldump -u #{Settings[:database][:username]} -p#{Settings[:database][:password]} --database #{db_name} > #{File.join(dir, filename)}")
+    end
+
   end
 end
 

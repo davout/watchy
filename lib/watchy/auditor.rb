@@ -46,6 +46,8 @@ module Watchy
       bootstrap_databases!
       bootstrap_audit_tables!
 
+      setup_snapshots(config[:snapshots])
+
       logger.info "Watching '#{watched_db}', using '#{audit_db}' as audit database"
 
       trap('INT') { interrupt! }
@@ -182,6 +184,15 @@ module Watchy
       end
 
       logger.info("Received #{msg_count} messages")
+    end
+
+    #
+    # Sets up the DB snapshotting tasks
+    #
+    def setup_snapshots(snapshots)
+      snapshots && snapshots.each do |s|
+        PeriodicTask.new(s[1]) { take_snapshot(s[0]) }
+      end
     end
 
     #

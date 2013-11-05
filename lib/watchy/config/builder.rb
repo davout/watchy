@@ -45,6 +45,14 @@ module Watchy
       end
 
       #
+      # Sets up the snapshotting policy
+      #
+      def snapshot(db, crondef)
+        @config[:snapshots] ||= []
+        @config[:snapshots] <<  [db, crondef]
+      end
+
+      #
       # Sets the logger
       #
       def logging(&block)

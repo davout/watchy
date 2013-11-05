@@ -9,7 +9,7 @@ describe Watchy::DatabaseHelper do
 
   describe '#connect_db' do
     it 'should instantiate a database client' do
-      Mysql2::Client.should_receive(:new).once.with({ :foo => :bar })
+      Mysql2::Client.should_receive(:new).once.with({ :reconnect => true, :foo => :bar })
       Watchy::DatabaseHelper.connect_db({ foo: :bar })
     end
   end

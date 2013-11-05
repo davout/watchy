@@ -1,15 +1,15 @@
 require 'mustache'
-require 'parse-cron'
 
 require 'watchy/database_helper'
 require 'watchy/queues_helper'
+require 'watchy/periodic_task'
 
 module Watchy
 
   #
   # Defines the base class for user-defined reports
   #
-  class Report < Mustache
+  class Report < PeriodicTask
 
     include Watchy::DatabaseHelper
     include Watchy::QueuesHelper
@@ -21,8 +21,7 @@ module Watchy
     #   times for this report
     #
     def initialize(cron_def = nil)
-      @cron_def = cron_def
-      @next_run = cron_parser && cron_parser.next(Time.now)
+      super(cron_def) { }
     end
 
     #
@@ -43,27 +42,17 @@ module Watchy
     # @return [String] The generated report
     #
     def do_render
-      render(template)
+      Mustache.render(template, self)
+    end
+   
+    #
+    # Override the run method to broadcast the report
+    #
+    def run!
+      broadcast!
+      super
     end
 
-    #
-    # Indicates whether this report is currently due
-    #
-    # @return [Boolean] Whether this report should be run
-    #
-    def due?
-      cron_parser && (@next_run < Time.now)
-    end
-
-    #
-    # Returns the +CronParser+ instance responsible for scheduling this report
-    #
-    # @return [CronParser] The configured cron definition
-    #
-    def cron_parser
-      @cron_parser ||= (@cron_def && CronParser.new(@cron_def))
-    end
-    
     #
     # Pushes a report on the reporting queue
     #

@@ -14,7 +14,7 @@ module Watchy
       include Watchy::TablesHelper
 
       # The default interval betwee activity reports
-      HOURS = 6
+      HOURS = 1
 
       def initialize(crondef = nil)
         super(crondef || "0 */#{HOURS} * * *")
@@ -89,26 +89,6 @@ module Watchy
       #
       def cutoff_str
         cutoff.strftime('%Y-%m-%d %H:%M:%S')
-      end
-
-      #
-      # Returns the comma-separated fingerprints of the currently pending violations
-      #
-      # @return [String] The comma-separated list of fingerprints
-      #
-      def signoff_command
-        @violations.map { |v| v['fingerprint'].to_s }.join(',')
-      end
-
-
-      #
-      # Overridden version to take into account the fact that the report is due
-      #   only if violations are pending
-      #
-      # @return [Boolean] Whether the report is due
-      #
-      def due?
-        super && !violations.empty?
       end
 
     end
