@@ -74,8 +74,8 @@ module Watchy
         # Enforce the different rules on the relevant items
         check_rules
 
-        # Run the configured reports at their defined periodicity
-        run_reports!
+        # Runs the periodic tasks that are due
+	run_periodic_tasks!
 
         # Timestamps the newly inserted rows
         stamp_new_rows
@@ -114,13 +114,11 @@ module Watchy
     end
 
     #
-    # Runs the configured reports if necessary
+    # Runs the due periodic tasks
     #
-    def run_reports!
-      @reports.select(&:due?).each do |r|
-        logger.warn("Generating report '#{r.class}'")
-        r.broadcast!
-      end
+    def run_periodic_tasks!
+      logger.warn("Running periodic tasks...")
+      PeriodicTask.run_all_due!
     end
 
     #

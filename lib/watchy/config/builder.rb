@@ -48,8 +48,8 @@ module Watchy
       # Sets up the snapshotting policy
       #
       def snapshot(db, crondef)
-        @config[:snapshots] ||= []
-        @config[:snapshots] <<  [db, crondef]
+        @snapshots ||= []
+        @snapshots <<  [db, crondef]
       end
 
       #
@@ -104,6 +104,7 @@ module Watchy
       def resolve
         @config = @config.inject({}) { |memo, h| memo.merge(h) }
         @config.merge!(ReportingConfigBuilder.new.build) unless @config[:reports] 
+        @config[:snapshots] = @snapshots || []
         @config
       end
 

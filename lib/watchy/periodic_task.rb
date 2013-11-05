@@ -7,6 +7,12 @@ module Watchy
   #
   class PeriodicTask
 
+    @@periodic_tasks = []
+
+    def self.periodic_tasks
+      @@periodic_tasks
+    end
+
     #
     # Initializes a periodic task
     #
@@ -14,6 +20,7 @@ module Watchy
       @cron_def = cron_def
       @block    = block
       @next_run = cron_parser && cron_parser.next(Time.now)
+      PeriodicTask.tasks.add(self)
     end
 
 
