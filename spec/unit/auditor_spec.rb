@@ -68,8 +68,8 @@ describe Watchy::Auditor do
       subject.should_receive :stamp_new_rows
     end
 
-    it 'should run the reports' do
-      subject.should_receive :run_reports!
+    it 'should run the periodic tasks' do
+      subject.should_receive :run_periodic_tasks!
     end
 
     after do
@@ -140,13 +140,13 @@ describe Watchy::Auditor do
 
   describe 'when working with reports' do
     before do
-      @due_report   = Object.new
-      @undue_report = Object.new
+      @due_report   = Watchy::Report.new('* * * * *')
+      @undue_report = Watchy::Report.new('* * * * *')
 
       @due_report.stub(:due?).and_return(true)
       @undue_report.stub(:due?).and_return(false)
 
-      subject.instance_variable_set(:@reports, [@due_report, @undue_report])
+      Watchy::PeriodicTask.tasks = [@due_report, @undue_report]
     end
 
     describe '#run_reports!' do
@@ -155,7 +155,7 @@ describe Watchy::Auditor do
         @undue_report.should_receive(:due?).once
         @due_report.should_receive(:broadcast!).once
         @undue_report.should_not_receive(:broadcast!)
-        subject.run_reports!
+        subject.run_periodic_tasks!
       end
     end
   end

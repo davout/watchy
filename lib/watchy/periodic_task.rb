@@ -9,8 +9,12 @@ module Watchy
 
     @@periodic_tasks = []
 
-    def self.periodic_tasks
-      @@periodic_tasks
+    def self.tasks
+     @@periodic_tasks
+    end
+
+    def self.tasks=(t)
+      @@periodic_tasks = t
     end
 
     #
@@ -20,7 +24,7 @@ module Watchy
       @cron_def = cron_def
       @block    = block
       @next_run = cron_parser && cron_parser.next(Time.now)
-      PeriodicTask.tasks.add(self)
+      PeriodicTask.tasks << self
     end
 
 
@@ -28,7 +32,7 @@ module Watchy
     # Runs the periodic task
     #
     def run!
-      block.call
+      @block.call
       @next_run = cron_parser && cron_parser.next(Time.now)
     end
 
@@ -36,7 +40,7 @@ module Watchy
     # Run all due periodic tasks
     #
     def self.run_all_due!
-      self.class.tasks.select(&:due?).each(&:run!)
+      tasks.select(&:due?).each(&:run!)
     end
 
     #

@@ -18,6 +18,9 @@ describe Watchy::Config::DSL do
           drop_audit_schema!
         end
 
+        snapshot :watched, '* * * * *'
+        snapshot :audit, '* * * * *'
+
         logging do
           logger :foo
           level :batshit
@@ -75,6 +78,11 @@ describe Watchy::Config::DSL do
           audit_schema: 'relativity-audit',
           drop_audit_schema: true
         },
+
+        snapshots: [
+          [:watched, '* * * * *'],
+          [:audit, '* * * * *']
+        ],
 
         logging: {
           logger: :foo,
