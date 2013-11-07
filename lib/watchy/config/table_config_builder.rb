@@ -29,7 +29,7 @@ module Watchy
       # @param block [Proc] The configuration block for this table
       #
       def field(name, &block)
-        @config[:fields][name] = Docile.dsl_eval(Watchy::Config::FieldConfigBuilder.new, &block).build
+        @config[:fields][name.to_sym] = Docile.dsl_eval(Watchy::Config::FieldConfigBuilder.new, &block).build
       end
 
       #

@@ -1,4 +1,5 @@
 require 'watchy/field'
+require 'forwardable'
 require 'base64'
 
 module Watchy
@@ -9,6 +10,11 @@ module Watchy
   class Table
 
     include Watchy::DatabaseHelper
+
+    extend Forwardable
+
+    def_delegator self, :condition_from_hashes 
+    def_delegator self, :assignment_from_hash
 
     #
     # The field names used internally for auditing
@@ -328,7 +334,6 @@ module Watchy
     #   violation gets logged in order to be reported upon.
     #
     def check_rules_on_update
-
       logger.debug "Running UPDATE checks for #{name}"
 
       db.query("SELECT * FROM #{audit} WHERE `_has_delta` = 1").each do |audit_row|
@@ -342,7 +347,7 @@ module Watchy
         # do nothing specific here
         if watched_row
           fields.each do |f|
-            violations = f.on_update(audit_row, watched_row, self)
+            violations = f.on_update(audit_row, watched_row)
             violations.compact.each { |v| record_violation(v[:description], audit_row, v[:rule_name], audit_row['_last_version'], f.name) }
           end
 
@@ -366,7 +371,7 @@ module Watchy
         logger.debug "Checking row: #{pkey}"
 
         fields.each do |f|
-          violations = f.on_insert(audit_row, self)
+          violations = f.on_insert(audit_row)
           violations.compact.each { |v| record_violation(v[:description], v[:item], v[:rule_name], audit_row['_last_version'], f.name) }
         end
 
@@ -397,7 +402,7 @@ module Watchy
         deletions.each do |del|
           row = db.query("SELECT * FROM #{audit} WHERE #{condition_from_hashes(del)}").to_a[0]
           rules[:delete].each do |rule|
-            v = rule.execute(row)
+            v = rule.execute(row, self)
             record_violation(v, row, rule.name, row['_last_version']) if v
           end
         end
@@ -432,7 +437,7 @@ module Watchy
         SELECT COUNT(*) AS CNT 
         FROM `#{auditor.audit_db}`.`_rule_violations` 
         WHERE  
-      #{field_condition} AND
+          #{field_condition} AND
           `pkey` = '#{db.escape(pk.to_s)}' AND 
           `audited_table` = '#{name}' AND
           `state` = 'pending' AND
@@ -446,7 +451,7 @@ module Watchy
           (`fingerprint`, `audited_table`, `field`, `name`, `stamp`, `description`, `item`, `pkey`, `row_version`, `state`)
         VALUES 
           ('#{fingerprint}', '#{name}', #{ field ? "'#{field}'" : 'NULL' }, '#{rule_name || ''}',
-      #{stamp}, '#{db.escape(violation)}', '#{db.escape(serialized)}', '#{db.escape(pk.to_s)}', #{row_version}, 'PENDING')
+      #{stamp}, '#{db.escape(violation)}', '#{db.escape(serialized)}', '#{db.escape(JSON.dump(pk))}', #{row_version}, 'PENDING')
       EOF
 
       if !already_exists
@@ -514,7 +519,7 @@ module Watchy
     # @param table [String] The table alias to use for prefixing the identifier, may be omitted
     # @return [String] A SQL +WHERE+ fragment
     #
-    def condition_from_hashes(p, table = nil)
+    def self.condition_from_hashes(p, table = nil)
       prefix = table ? "#{table}." : ""
 
       cond_or = [p].flatten.map do |h|
@@ -538,7 +543,7 @@ module Watchy
     # @param table [String] The table alias to use for prefixing the identifier, may be omitted
     # @return [String] The +UPDATE table SET [...]+ fragment
     #
-    def assignment_from_hash(h, table = nil)
+    def self.assignment_from_hash(h, table = nil)
       prefix = table ? "#{table}." : ""
       h.map do |k,v|
         if v && !METADATA_FIELDS.include?(k)
@@ -553,11 +558,11 @@ module Watchy
     # @param o [Object] An object which may require its string representation to be escaped for SQL
     # @return [String] The escaped string representation of the object
     #
-    def escaped_value(o)
+    def self.escaped_value(o)
       if o.is_a?(Time)
         "'#{o}'"
       elsif o.is_a?(String)
-        "'#{db.escape(o)}'"
+        "'#{DatabaseHelper.db.escape(o)}'"
       else
         o.to_s
       end

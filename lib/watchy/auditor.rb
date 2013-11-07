@@ -88,7 +88,7 @@ module Watchy
 
         # Reset the "row has changed" flag
         unflag_row_deltas
-
+        
         # Receives messages from the queue and executes them
         receive_and_handle_messages
 
@@ -117,7 +117,7 @@ module Watchy
     # Runs the due periodic tasks
     #
     def run_periodic_tasks!
-      logger.warn("Running periodic tasks...")
+      logger.info("Running periodic tasks...")
       PeriodicTask.run_all_due!
     end
 

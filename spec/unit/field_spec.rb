@@ -72,8 +72,8 @@ describe Watchy::Field do
     describe '#on_insert' do
       it 'should record a violation' do
         subject.should_receive(:rules).once.with(:insert).and_return([@some_rule])
-        @some_rule.should_receive(:execute).once.with(@audit_row, subject.table).and_return('boo')
-        subject.on_insert(@audit_row, subject.table).should eql([{
+        @some_rule.should_receive(:execute).once.with(@audit_row, subject).and_return('boo')
+        subject.on_insert(@audit_row).should eql([{
           rule_name: 'foodeloo',
           description: 'boo',
           item: @audit_row
@@ -84,8 +84,8 @@ describe Watchy::Field do
     describe '#on_update' do
       it 'should record a violation' do
         subject.should_receive(:rules).once.with(:update).and_return([@some_rule])
-        @some_rule.should_receive(:execute).once.with(@watched_row, @audit_row, subject.table).and_return('boo')
-        subject.on_update(@watched_row, @audit_row, subject.table).should eql([{
+        @some_rule.should_receive(:execute).once.with(@watched_row, @audit_row, subject).and_return('boo')
+        subject.on_update(@watched_row, @audit_row).should eql([{
           rule_name: 'foodeloo',
           description: 'boo',
           item: [@watched_row, @audit_row]

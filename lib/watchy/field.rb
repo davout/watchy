@@ -101,12 +101,11 @@ module Watchy
     #
     # @param watched_row [Hash] The row copy in the audited schema
     # @param audit_row [Hash] The row copy in the audit schema
-    # @param table [Watchy::Table] The table being checked
     # @return [Array<String>] The error messages resulting from executing the defined rules, if any
     #
-    def on_update(watched_row, audit_row, table)
+    def on_update(watched_row, audit_row)
       rules(:update).inject([]) do |violations, rule|
-        v = rule.execute(watched_row, audit_row, table)
+        v = rule.execute(watched_row, audit_row, self)
 
         if v
           violations << {
@@ -124,12 +123,11 @@ module Watchy
     # Executes the rules defined for the INSERT event
     #
     # @param audit_row [Hash] The row copy in the audit schema
-    # @param table [Watchy::Table] The table being checked
     # @return [Array<String>] The error messages resulting from executing the defined rules, if any
     #
-    def on_insert(audit_row, table)
+    def on_insert(audit_row)
       rules(:insert).inject([]) do |violations, rule|
-        v = rule.execute(audit_row, table)
+        v = rule.execute(audit_row, self)
 
         if v
           violations << {

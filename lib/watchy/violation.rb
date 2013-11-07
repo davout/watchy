@@ -1,3 +1,5 @@
+require 'watchy/table'
+
 module Watchy
 
   #
@@ -19,19 +21,29 @@ module Watchy
     def self.signoff(fingerprints = [])
       fps = fingerprints.select { |f| f.match(/\A[a-z0-9]{64}\Z/) }
 
-      q = <<-EOS
-        UPDATE `#{audit_db}`.`_rule_violations` 
+      violations = db.query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE state = 'PENDING' AND fingerprint IN (#{fingerprints.map { |f| "'#{f}'" }.join(', ')})").to_a
 
-        SET 
-          `state` = 'SIGNED-OFF', 
-          `signed_off_at` = #{Time.now.to_i}
+      violations.each do |vltn|
+        # Sign-off on the violation itself
+        db.query("UPDATE `#{audit_db}`.`_rule_violations` SET state = 'SIGNED-OFF' WHERE fingerprint = '#{vltn['fingerprint']}'")
 
-        WHERE 
-          `fingerprint` IN (#{fingerprints.map { |f| "'#{f}'" }.join(', ')})  AND 
-          `state` = 'PENDING'
-      EOS
+        # Mark the relevant row as clean if and only if there aren't any other
+        # pending violations for it
+        other = db.query(<<-EOS)
+          SELECT * 
+          FROM `#{audit_db}`.`_rule_violations` 
+          WHERE 
+            `audited_table` = '#{vltn['audited_table']}' AND
+            #{ vltn['field'] && "`field` = '#{vltn['field']}' AND " }
+            `pkey` = '#{vltn['pkey']}' AND
+            `state` = 'PENDING'
+        EOS
 
-      db.query(q)
+        if other.to_a.length.zero?
+          pkey = JSON.load(vltn['pkey'])
+          db.query("UPDATE `#{audit_db}`.`#{vltn['table']}` SET `_has_violation` = 0 WHERE #{Table.condition_from_hashes(pkey)}")
+        end
+      end
     end
   end
 end

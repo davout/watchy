@@ -266,8 +266,8 @@ describe 'Watchy::Table' do
 
   describe '#assignment_from_hash' do
     it 'should create an assignment string' do
-      subject.should_receive(:escaped_value).once.with(42).and_return(42)
-      subject.should_receive(:escaped_value).once.with('Foo').and_return("'Foo'")
+      Watchy::Table.should_receive(:escaped_value).once.with(42).and_return(42)
+      Watchy::Table.should_receive(:escaped_value).once.with('Foo').and_return("'Foo'")
       subject.assignment_from_hash({ 'id' => 42, 'name' => 'Foo' }, 'fooTable').
         should eql("fooTable.`id` = 42, fooTable.`name` = 'Foo'") 
     end

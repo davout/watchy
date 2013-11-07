@@ -7,11 +7,16 @@ module Watchy
   #
   class Mysql2Wrapper < Mysql2::Client
 
+    include Watchy::LoggerHelper
+
+    DEBUG_SQL = true
+
     #
-    # Returns the full query in exception messages
+    # Returns the full query in exception messages, optionnally outputs it
     #
     def query(q)
       begin
+        DEBUG_SQL && logger.debug(q)
         super(q)
       rescue
         raise "MySQL query error, query was :\n#{q}\nOriginal message: #{$!.message}"

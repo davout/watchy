@@ -14,6 +14,18 @@ module Watchy
       end
 
       #
+      # Shorthand to allow a field to be populated with a value as long as its previous value was NULL
+      #
+      def allow_update_from_nil
+        @config[:update] << Watchy::UpdateRule.new("allow_update_from_nil_#{(rand * 1000000).to_i}") do |old, new|
+          f = name.to_s
+          if old[f] && (old[f] != new[f])
+            "#{f} changed from #{old[f]} to #{new[f]}"
+          end
+        end
+      end
+
+      #
       # Adds an UPDATE check for this field
       #
       # @param rule_name [String] The rule identifier
