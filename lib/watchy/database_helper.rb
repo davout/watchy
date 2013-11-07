@@ -66,10 +66,15 @@ module Watchy
     # @param dir [String] The directory in which the snapshot should be saved
     # @param filename [String] The file name to use
     #
-    def take_snapshot(db = :watched, dir = Dir.pwd, filename)
-      db_name = send("#{db}_db")
-      filename ||= "#{Time.now.strftime("%Y-%m-%d_%H%M%S")}_#{db_name}"
-      system("mysqldump -u #{Settings[:database][:username]} -p#{Settings[:database][:password]} --database #{db_name} > #{File.join(dir, filename)}")
+    def take_snapshot(db = :watched, dir = Dir.pwd, filename = nil)
+      db_name = send("#{db}_db").to_s
+      filename ||= "#{Time.now.strftime("%Y-%m-%d_%H%M%S")}_#{db_name}.sql.bz2"
+      snapshot_command "mysqldump -u #{Settings[:database][:username]} -p#{Settings[:database][:password]} --databases #{db_name} | bzip2"
+# | gpg #{}  #{File.join(dir, filename)}")
+
+gpg = Settings[:gpg]
+
+
     end
 
   end
