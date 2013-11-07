@@ -72,7 +72,7 @@ module Watchy
 
       filename ||= File.join(dir, "#{Time.now.strftime("%Y-%m-%d_%H%M%S")}_#{db_name}.sql.bz2.gpg")
 
-      snapshot_command "mysqldump -u #{Settings[:database][:username]} -p#{Settings[:database][:password]} --databases #{db_name} | bzip2"
+      snapshot_command = "mysqldump -u #{Settings[:database][:username]} -p#{Settings[:database][:password]} --databases #{db_name} | bzip2"
       snapshot_command += " | gpg -e #{ gpg.encrypt_to.map { |k| "-r #{k.email}" }.join(' ') } -s -u #{gpg.sign_with.email}"
       snapshot_command += " > #{filename}"
 
