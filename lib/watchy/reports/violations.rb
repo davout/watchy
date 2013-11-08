@@ -9,6 +9,11 @@ module Watchy
   module Reports
 
     #
+    # The maximum amount of violations to report at once
+    #
+    MAX_REPORTED_VIOLATIONS = 50
+
+    #
     # This report lists currently active rule violations, it is sent every
     #   ten minutes if violations are present.
     #
@@ -47,7 +52,7 @@ module Watchy
       def violations
         unless @violations 
           @violations = db.
-            query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING'").to_a
+            query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING' LIMIT #{MAX_REPORTED_VIOLATIONS}").to_a
         end
 
         @violations

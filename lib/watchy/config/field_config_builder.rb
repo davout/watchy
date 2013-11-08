@@ -14,6 +14,13 @@ module Watchy
       end
 
       #
+      # Shorthand to allow all updates on a field
+      #
+      def allow_all_updates
+        @config[:update] << Watchy::UpdateRule.new("allow_all_updates_#{(rand * 1000000).to_i}") { |old, new| }
+      end
+      
+      #
       # Shorthand to allow a field to be populated with a value as long as its previous value was NULL
       #
       def allow_update_from_nil

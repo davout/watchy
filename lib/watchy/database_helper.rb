@@ -79,7 +79,7 @@ module Watchy
 
       logger.debug("Running snapshot command \"#{snapshot_command}\"")
 
-      system(snapshot_command)
+      Process.spawn(snapshot_command)
     end
 
   end

@@ -41,7 +41,7 @@ module Watchy
 
         if other.to_a.length.zero?
           pkey = JSON.load(vltn['pkey'])
-          db.query("UPDATE `#{audit_db}`.`#{vltn['table']}` SET `_has_violation` = 0 WHERE #{Table.condition_from_hashes(pkey)}")
+          db.query("UPDATE `#{audit_db}`.`#{vltn['audited_table']}` SET `_has_violation` = 0 WHERE #{Table.condition_from_hashes(pkey)}")
         end
       end
     end

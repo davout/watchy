@@ -438,7 +438,7 @@ module Watchy
         FROM `#{auditor.audit_db}`.`_rule_violations` 
         WHERE  
           #{field_condition} AND
-          `pkey` = '#{db.escape(pk.to_s)}' AND 
+          `pkey` = '#{db.escape(JSON.dump(pk))}' AND 
           `audited_table` = '#{name}' AND
           `state` = 'pending' AND
           `name` = '#{rule_name}'
