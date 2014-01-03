@@ -31,9 +31,10 @@ describe Watchy::Reports::Violations do
 
   describe '#signoff_command' do
     before do
-      subject.instance_variable_set(:@violations, [{ 'fingerprint' => 'a' }, 
-                                                   { 'fingerprint' => 'b' }, 
-                                                   { 'fingerprint' => 'c' }]) 
+      subject.stub(:db).and_return(Object.new)
+      subject.db.stub(:query).and_return([{ 'fingerprint' => 'a' }, 
+                                          { 'fingerprint' => 'b' }, 
+                                          { 'fingerprint' => 'c' }]) 
     end
 
     it 'should return the correct command' do

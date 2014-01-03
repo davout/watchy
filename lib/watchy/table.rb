@@ -1,6 +1,7 @@
 require 'watchy/field'
 require 'forwardable'
 require 'base64'
+require 'json'
 
 module Watchy
 
