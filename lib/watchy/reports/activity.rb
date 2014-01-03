@@ -13,8 +13,8 @@ module Watchy
 
       include Watchy::TablesHelper
 
-      # The default interval betwee activity reports
-      HOURS = 1
+      # The default interval between activity reports
+      HOURS = 8
 
       def initialize(crondef = nil)
         super(crondef || "0 */#{HOURS} * * *")
