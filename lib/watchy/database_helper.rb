@@ -70,10 +70,10 @@ module Watchy
       gpg = Settings[:gpg]
       db_name = send("#{db}_db").to_s
       filename ||= File.join(dir, "#{Time.now.strftime("%Y-%m-%d_%H%M%S")}_#{db_name}.sql.bz2.gpg")
-      logger.info("Taking snapshot of DB #{db} to #{filename}")
+      logger.warn("Taking snapshot of DB #{db} to #{filename}")
 
       # HACK: the --set-gtid-purged=OFF is necessary if mysqldump 5.6 dumps from a 5.5 server
-      snapshot_command = "mysqldump --set-gtid-purged=OFF -u #{Settings[:database][:username]} -h #{Settings[:database][:host]} -p#{Settings[:database][:password]} --databases #{db_name} | bzip2"
+      snapshot_command = "mysqldump -u #{Settings[:database][:username]} -h #{Settings[:database][:host]} -p#{Settings[:database][:password]} --databases #{db_name} | bzip2"
       snapshot_command += " | gpg -e #{ gpg.encrypt_to.map { |k| "-r #{k.email}" }.join(' ') } -s -u #{gpg.sign_with.first.email}"
       snapshot_command += " > #{filename}"
 
