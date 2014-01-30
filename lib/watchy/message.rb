@@ -1,4 +1,5 @@
 require 'watchy/violation'
+require 'watchy/logger_helper'
 
 module Watchy
 
@@ -29,14 +30,18 @@ module Watchy
     # Handles the message
     #
     def handle
-      chunks = body.split('|')
-      case chunks[0]
+      begin
+        chunks = body.split('|')
+        case chunks[0]
 
-      when 'SIGNOFF' then Watchy::Violation.signoff(chunks[1].split(','))
-      when 'REPORT'  then eval(chunks[1]).new.broadcast!
-      when 'EVAL'    then eval(chunks[1])
+        when 'SIGNOFF' then Watchy::Violation.signoff(chunks[1].split(','))
+        when 'REPORT'  then eval(chunks[1]).new.broadcast!
+        when 'EVAL'    then eval(chunks[1])
 
-      else raise('Invalid command received')
+        else logger.error "Invalid command received #{body}"
+        end
+      rescue
+        logger.error "An error was raised when handling the following command : #{body}\n#{$!.message}\n#{$!.backtrace.join("\n")}"
       end
     end
   end
