@@ -8,10 +8,11 @@ module Watchy
   #
   class AmazonSQS < Watchy::Queue
 
-    def initialize(access_key_id, secret_access_key, queue_url)
+    def initialize(access_key_id, secret_access_key, queue_url, sqs_endpoint = 'sqs.eu-west-1.amazonaws.com')
       @client = AWS::SQS.new({
         access_key_id: access_key_id,
-        secret_access_key: secret_access_key
+        secret_access_key: secret_access_key,
+	sqs_endpoint: sqs_endpoint
       }).queues[queue_url]
 
       raise ("Unable to connect to the Amazon SQS queue") unless @client
