@@ -22,6 +22,11 @@ module Watchy
     #
     METADATA_FIELDS = %w{ _copied_at _has_delta _last_version _has_violation _deleted_at }
 
+    #
+    # The maximum number of rows to handle for each operation
+    #
+    MAX_ROWS = 250
+
     attr_accessor :name, :columns, :auditor, :db, :logger, :rules, :versioning_enabled
 
     #
@@ -219,6 +224,7 @@ module Watchy
           SELECT #{watched}.*, NULL, 0, NULL, 0, NULL
           FROM #{watched} LEFT JOIN #{audit} ON #{pkey_equality_condition} 
           WHERE #{audit}.`_last_version` IS NULL
+          LIMIT #{MAX_ROWS}
       EOF
 
       db.query(q)
