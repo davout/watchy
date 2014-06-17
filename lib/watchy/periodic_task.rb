@@ -27,7 +27,6 @@ module Watchy
       PeriodicTask.tasks << self
     end
 
-
     #
     # Runs the periodic task
     #

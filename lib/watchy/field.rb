@@ -87,6 +87,14 @@ module Watchy
     end
 
     #
+    # Returns +true+ if the field value should be treated as a binary string
+    #
+    def binary?
+      t = @type.downcase
+      !!((t =~ /binary/) || (t =~ /blob/))
+    end
+
+    #
     # Returns the rules applicable to the passed event (+:insert+ or +:update+)
     #
     # @param event [Symbol] The event : +:insert+ or +:update+

@@ -21,7 +21,7 @@ describe Watchy::Message do
 
     it 'should log an error when an invalid command is handled' do
       subject.should_receive(:body).exactly(2).times.and_return('BUGGY_COMMAND')
-      subject.should_receive(:logger).once.and_return(stub(Object).as_null_object)
+      subject.should_receive(:logger).once.and_return(double(Object).as_null_object)
       expect { subject.handle }.to_not raise_exception
     end
   end

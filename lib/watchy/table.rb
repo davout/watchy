@@ -39,7 +39,7 @@ module Watchy
     #   INSERTs, UPDATEs, and DELETEs for this table
     #
     def initialize(auditor, name, rules, versioning_enabled = false)
-      @db         = auditor.db
+      @db                 = auditor.db
       @logger             = auditor.logger
       @auditor            = auditor
       @rules              = rules
@@ -331,7 +331,7 @@ module Watchy
 
       db.query(q_rows_to_update).each do |row|
         watched_row = db.query("SELECT * FROM #{watched} WHERE #{condition_from_hashes(row)}").to_a[0]
-        db.query("UPDATE #{audit} SET #{assignment_from_hash(watched_row)} WHERE #{condition_from_hashes(row)}")
+        db.query("UPDATE #{audit} SET #{assignment_from_hash(watched_row, self)} WHERE #{condition_from_hashes(row)}")
       end
     end
 
@@ -433,7 +433,7 @@ module Watchy
     def record_violation(violation, item, rule_name, row_version, field = nil)
       stamp = Time.now.to_i
 
-      serialized = assignment_from_hash(item)
+      serialized = assignment_from_hash(item, self)
       pk = item.select { |k,v| primary_key.include?(k.to_s) }
 
       fingerprint = Digest::SHA2.hexdigest("#{pk}-#{name}-#{rule_name}-#{field}-#{violation}-#{row_version}")
@@ -519,6 +519,16 @@ module Watchy
     end
 
     #
+    # Returns a field based on its name
+    #
+    # @param name [String] The field name to look for
+    # @return [Watchy::Field] The matching field or +nil+
+    #
+    def get_field(name)
+      fields.find { |f| f.name == name.to_s }
+    end
+
+    #
     # Returns a SQL +WHERE+ condition given an array of hashes containing field names
     #   as keys and constrained values as values
     #
@@ -550,11 +560,11 @@ module Watchy
     # @param table [String] The table alias to use for prefixing the identifier, may be omitted
     # @return [String] The +UPDATE table SET [...]+ fragment
     #
-    def self.assignment_from_hash(h, table = nil)
-      prefix = table ? "#{table}." : ""
+    def self.assignment_from_hash(h, table, table_prefix = nil)
+      prefix = table_prefix ? "#{table_prefix}." : ""
       h.map do |k,v|
         unless METADATA_FIELDS.include?(k)
-          "#{prefix}`#{k}` = #{escaped_value(v)}"
+          "#{prefix}`#{k}` = #{escaped_value(v, table.get_field(k).binary?)}"
         end
       end.compact.join(', ')
     end
@@ -563,11 +573,14 @@ module Watchy
     # Escapes +String+ values with simple quotes
     #
     # @param o [Object] An object which may require its string representation to be escaped for SQL
+    # @param binary [Boolean] Whether the string should be treated as containing binary data
     # @return [String] The escaped string representation of the object
     #
-    def self.escaped_value(o)
+    def self.escaped_value(o, binary = false)
       if o.nil?
         "NULL"
+      elsif binary
+        "x'#{o.unpack("H*")[0]}'"
       elsif o.is_a?(Time) || o.is_a?(Date) 
         "'#{o}'"
       elsif o.is_a?(String)

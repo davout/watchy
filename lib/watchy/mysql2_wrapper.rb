@@ -9,6 +9,7 @@ module Watchy
 
     include Watchy::LoggerHelper
 
+    # The full SQL queries will be logged with +debug+ level if this is set to +true+
     DEBUG_SQL = true
 
     #

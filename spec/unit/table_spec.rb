@@ -266,10 +266,23 @@ describe 'Watchy::Table' do
 
   describe '#assignment_from_hash' do
     it 'should create an assignment string' do
-      Watchy::Table.should_receive(:escaped_value).once.with(42).and_return(42)
-      Watchy::Table.should_receive(:escaped_value).once.with('Foo').and_return("'Foo'")
-      subject.assignment_from_hash({ 'id' => 42, 'name' => 'Foo' }, 'fooTable').
-        should eql("fooTable.`id` = 42, fooTable.`name` = 'Foo'") 
+      auditor     = double(Object).as_null_object
+      table       = Watchy::Table.new(auditor, nil, nil, nil)
+
+      Watchy::Field.any_instance.stub(:read_rules)
+
+      table.stub(:fields).and_return([
+        Watchy::Field.new(table, 'id', 'INT', false, true, nil, nil),
+        Watchy::Field.new(table, 'name', 'INT', false, true, nil, nil),
+        Watchy::Field.new(table, 'some_bin', 'VARBINARY(16)', false, true, nil, nil),
+      ])
+
+      Watchy::Table.should_receive(:escaped_value).once.with(42, false).and_return(42)
+      Watchy::Table.should_receive(:escaped_value).once.with('Foo', false).and_return("'Foo'")
+      Watchy::Table.should_receive(:escaped_value).once.with("\xFF\x00", true).and_return("x'ff00'")
+
+      subject.assignment_from_hash({ 'id' => 42, 'name' => 'Foo', 'some_bin' => "\xFF\x00" }, table, 'fooTable').
+        should eql("fooTable.`id` = 42, fooTable.`name` = 'Foo', fooTable.`some_bin` = x'ff00'") 
     end
   end
 
