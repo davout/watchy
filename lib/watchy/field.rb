@@ -1,4 +1,5 @@
 require 'watchy/default_update_rule'
+require 'watchy/bin_helpers'
 
 module Watchy
 
@@ -6,6 +7,8 @@ module Watchy
   # This class represents a table column
   #
   class Field
+
+    include Watchy::BinHelpers
 
     # 
     # The table this field belongs to

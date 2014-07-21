@@ -1,4 +1,5 @@
 require 'watchy/field'
+require 'watchy/bin_helpers'
 require 'forwardable'
 require 'base64'
 require 'json'
@@ -11,6 +12,7 @@ module Watchy
   class Table
 
     include Watchy::DatabaseHelper
+    include Watchy::BinHelpers
 
     extend Forwardable
 
