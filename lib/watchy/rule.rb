@@ -37,7 +37,7 @@ module Watchy
                 "#{target.table.name}.#{target.name}"
               end
 
-        logger.error("Exception raised in rule <#{name}>\nTarget: <#{tgt}>\n#{$!.message}\n#{$!.backtrace.join("\n")}")
+        logger.error("Exception raised in rule <#{name}>\nTarget: <#{tgt}>\nItem: #{row}\n#{$!.message}\n#{$!.backtrace.join("\n")}")
         raise
       end
     end
