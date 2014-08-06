@@ -31,7 +31,13 @@ module Watchy
       begin
         block.call
       rescue
-        logger.error("Exception <#{$!.message}> raised in rule <#{name}>\nTarget: <#{target.class.to_s}> : <#{target.name}>\n#{$!.backtrace.join("\n")}")
+        tgt = if target.is_a?(Watchy::Table)
+                target.name
+              else
+                "#{target.table.name}.#{target.name}"
+              end
+
+        logger.error("Exception raised in rule <#{name}>\nTarget: <#{tgt}>\n#{$!.message}\n#{$!.backtrace.join("\n")}")
         raise
       end
     end
