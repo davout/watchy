@@ -1,9 +1,10 @@
 require 'simplecov'
-require(File.expand_path('../../lib/watchy', __FILE__))
 
 SimpleCov.start do
   add_filter "colored_logger"
 end
+
+require(File.expand_path('../../lib/watchy', __FILE__))
 
 RSpec.configure do |config|
   config.before(:each) do
