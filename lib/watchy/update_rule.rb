@@ -16,7 +16,7 @@ module Watchy
     # Calls the +rule_code+ proc
     #
     def execute(original_row, updated_row, target)
-      with_reporting do
+      with_reporting(updated_row, target) do
         target.instance_exec(original_row, updated_row, &rule_code)
       end
     end

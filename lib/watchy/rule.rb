@@ -27,7 +27,7 @@ module Watchy
     #
     # Reports on rule execution failures
     #
-    def with_reporting(&block)
+    def with_reporting(row, target, &block)
       begin
         block.call
       rescue
