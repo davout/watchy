@@ -7,6 +7,8 @@ module Watchy
   #
   class PeriodicTask
 
+    include Watchy::LoggerHelper
+
     @@periodic_tasks = []
 
     def self.tasks
@@ -31,6 +33,7 @@ module Watchy
     # Runs the periodic task
     #
     def run!
+      logger.info("Running task #{self.class.to_s}")
       @block.call
       @next_run = cron_parser && cron_parser.next(Time.now)
     end
