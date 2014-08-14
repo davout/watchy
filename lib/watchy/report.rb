@@ -31,7 +31,7 @@ module Watchy
     # @return [String] The generated report
     #
     def generate
-      logger.info("Running report #{self.class.to_s}"
+      logger.info("Running report #{self.class.to_s}")
       report = do_render
       @next_run = cron_parser && cron_parser.next(Time.now)
       report
